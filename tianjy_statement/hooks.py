@@ -7,6 +7,20 @@ app_description = "天玑报表 Tianjy Statement"
 app_email = "Tianjy"
 app_license = "MIT"
 
+app_include_css = "tianjy_statement.bundle.guigu.css"
+app_include_js = "tianjy_statement.bundle.guigu.ts"
+
+
+guigu_view_types = {
+	'Tianjy Statement View Configuration': {
+		'create': 'guigu.view.create_configuration',
+		'get': 'guigu.view.get_configuration',
+		'update': 'guigu.view.update_configuration',
+		'delete': 'guigu.view.delete_configuration',
+	},
+};
+
+
 # Includes in <head>
 # ------------------
 

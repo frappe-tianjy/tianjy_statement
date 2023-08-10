@@ -4,4 +4,5 @@
 *.swp
 tags
 tianjy_statement/docs/current
-node_modules/
+node_modules
+tianjy_statement/public/dist

@@ -1,0 +1,61 @@
+{
+ "actions": [],
+ "autoname": "prompt",
+ "creation": "2023-08-10 21:37:05.244998",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "fields",
+  "start_row",
+  "end_row",
+  "template"
+ ],
+ "fields": [
+  {
+   "fieldname": "fields",
+   "fieldtype": "Table",
+   "label": "Fields",
+   "options": "Tianjy Statement View Configuration Field"
+  },
+  {
+   "default": "0",
+   "fieldname": "start_row",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Start Row",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "end_row",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "End Row",
+   "reqd": 1
+  },
+  {
+   "fieldname": "template",
+   "fieldtype": "Code",
+   "hidden": 1,
+   "label": "Template"
+  }
+ ],
+ "links": [],
+ "modified": "2023-08-10 21:38:05.944570",
+ "modified_by": "Administrator",
+ "module": "Tianjy Statement",
+ "name": "Tianjy Statement View Configuration",
+ "naming_rule": "Set by user",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "read": 1,
+   "role": "System Manager"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
