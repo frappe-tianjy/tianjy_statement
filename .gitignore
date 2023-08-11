@@ -6,3 +6,5 @@ tags
 tianjy_statement/docs/current
 node_modules
 tianjy_statement/public/dist
+tianjy_statement/tianjy_statement/doctype/tianjy_statement.js
+tianjy_statement/tianjy_statement/doctype/tianjy_statement.css
