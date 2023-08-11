@@ -16,6 +16,8 @@ import { ElFormItem, ElInputNumber } from 'element-plus';
 
 import readValue from '../lib/readValue.mjs';
 import toSettings from '../lib/toSettings.mjs';
+import { customStylesRenderer } from '../lib/customStylesRenderer.mjs';
+import rendererStyleMenu from '../lib/rendererStyleMenu.mjs';
 
 const root = shallowRef<HTMLElement>();
 
@@ -69,12 +71,44 @@ watch(root, async () => {
 		startCols: 6,
 		rowHeaders: true,
 		colHeaders: true,
-		contextMenu: true,
+		contextMenu: {
+			items: {
+				row_above: {},
+				row_below: {},
+				hr0: '---------',
+				col_left: {},
+				col_right: {},
+				hr1: '---------',
+				remove_row: {},
+				remove_col: {},
+				hr2: '---------',
+				undo: {},
+				redo: {},
+				hr3: '---------',
+				make_read_only: {},
+				hr4: '---------',
+				alignment: {},
+				hr5: '---------',
+				copy: {},
+				cut: {},
+				hr6: '---------',
+				mergeCells: {},
+				hr7: '---------',
+				style: {
+					renderer() {
+						return rendererStyleMenu(table);
+					},
+					disableSelection: false,
+					isCommand: true,
+				},
+			},
+		},
 		manualColumnResize: true,
 		manualRowResize: true,
 		mergeCells: [],
 		height: '100%',
 		language: 'zh-CN',
+		renderer: customStylesRenderer,
 		licenseKey: 'non-commercial-and-evaluation',
 		// @ts-ignore
 		formulas: {
@@ -89,13 +123,20 @@ watch(root, async () => {
 	if (value) {
 		table.updateSettings(toSettings(value));
 	}
-	const up = () => { cfg.value.template = JSON.stringify(readValue(table)); };
+	let timeout: any;
+	const up = () => {
+		clearTimeout(timeout);
+		timeout = setTimeout(() => {
+			cfg.value.template = JSON.stringify(readValue(table));
+		}, 0);
+	};
 	table.updateSettings({
 		afterMergeCells: up,
 		afterUnmergeCells: up,
 		afterColumnResize: up,
 		afterRowResize: up,
 		afterChange: up,
+		afterSetCellMeta: up,
 	});
 	hat = table;
 });

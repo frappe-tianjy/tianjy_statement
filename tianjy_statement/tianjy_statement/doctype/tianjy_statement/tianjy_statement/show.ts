@@ -1,14 +1,16 @@
 import Handsontable from 'handsontable';
 import HyperFormula from 'hyperformula';
 
-import type { Layout } from './types.mjs';
-import toSettings from './toSettings.mjs';
-import render from './render.mjs';
+import { Template } from '../../../../public/js/types.mjs';
+import render from '../../../../public/js/lib/render.mjs';
+import toSettings from '../../../../public/js/lib/toSettings.mjs';
+import { customStylesRenderer } from '../../../../public/js/lib/customStylesRenderer.mjs';
+
 import requestDocList from './requestDocList';
 
 
 export default async function show(
-	template: Layout | null,
+	template: Template | null,
 	dataArea: [number, number],
 	doctype: string,
 	ctx: any,
@@ -21,18 +23,18 @@ export default async function show(
 		alert('请先配置 doctype');
 		return;
 	}
+	// eslint-disable-next-line unicorn/consistent-function-scoping
 	let hide = () => { };
-	const hidden = new Promise<void>(r => hide = () => r());
+	const hidden = new Promise<void>(r => { hide = () => r(); });
 
 	const dialog = new frappe.ui.Dialog({
 		// @ts-ignore
-		title: __("测试微信模板消息"),
+		title: __('测试微信模板消息'),
 		on_hide() { hide(); },
-		fields: [{ fieldtype: "HTML", fieldname: "show", label: '' }],
+		fields: [{ fieldtype: 'HTML', fieldname: 'show', label: '' }],
 	});
-	window.Dialog = dialog
-	const modal = dialog.$wrapper[0]?.querySelector('.modal-dialog')
-	const transitionend = modal ? new Promise<void>((r) => {
+	const modal = dialog.$wrapper[0]?.querySelector('.modal-dialog');
+	const transitionend = modal ? new Promise<void>(r => {
 		(modal as HTMLElement).addEventListener('transitionend', () => r(), { once: true });
 	}) : Promise.resolve();
 	dialog.show();
@@ -54,6 +56,7 @@ export default async function show(
 		manualColumnResize: true,
 		manualRowResize: true,
 		language: 'zh-CN',
+		renderer: customStylesRenderer,
 		licenseKey: 'non-commercial-and-evaluation',
 		formulas: { engine: HyperFormula },
 		// cells: () => ({ readOnly: true }),

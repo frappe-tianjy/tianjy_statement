@@ -10,6 +10,7 @@ import HyperFormula from 'hyperformula';
 import toSettings from '../lib/toSettings.mjs';
 import render from '../lib/render.mjs';
 import type { Configuration } from '../types.mjs';
+import { customStylesRenderer } from '../lib/customStylesRenderer.mjs';
 
 
 const root = shallowRef<HTMLElement>();
@@ -30,6 +31,7 @@ const handsontable = computed(() => {
 		manualColumnResize: true,
 		manualRowResize: true,
 		language: 'zh-CN',
+		renderer: customStylesRenderer,
 		licenseKey: 'non-commercial-and-evaluation',
 		formulas: { engine: HyperFormula },
 		// cells: () => ({ readOnly: true }),

@@ -2,6 +2,42 @@ import type Handsontable from 'handsontable';
 
 import type { Template } from '../types.mjs';
 
+
+function getStyles(hot: Handsontable) {
+
+	const styles: Record<string, any>[][] = [];
+	for (const meta of hot.getCellsMeta()) {
+		const { row, col, bold, color, bgColor, italic, underline, className } = meta;
+		while (styles.length <= row) { styles.push([]); }
+		const style: Record<string, any> = {};
+		if (bold) { style.bold = 1; }
+		if (italic) { style.italic = 1; }
+		if (underline) { style.underline = 1; }
+		if (color) { style.color = color; }
+		if (bgColor) { style.bgColor = bgColor; }
+		const cname = (Array.isArray(className) ? className.join(' ') : className || '').split(' ');
+		if (cname.includes('htLeft')) {
+			style.left = 1;
+		} else if (cname.includes('htCenter')) {
+			style.center = 1;
+		} else if (cname.includes('htRight')) {
+			style.right = 1;
+		} else if (cname.includes('htJustify')) {
+			style.justify = 1;
+		}
+		if (cname.includes('htTop')) {
+			style.top = 1;
+		} else if (cname.includes('htMiddle')) {
+			style.middle = 1;
+		} else if (cname.includes('htBottom')) {
+			style.bottom = 1;
+		}
+		styles[row][col] = style;
+	}
+	return styles;
+}
+
+
 export default function readValue(
 	handsontable: Handsontable,
 ): Template {
@@ -10,6 +46,7 @@ export default function readValue(
 	const maxRow = data.length;
 	return {
 		data,
+		styles: getStyles(handsontable),
 		merged: handsontable.getPlugin('mergeCells')
 			// @ts-ignore
 			?.mergedCellsCollection

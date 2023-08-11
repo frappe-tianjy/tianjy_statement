@@ -107,7 +107,7 @@ function get(value: any, keys: string) {
 
 }
 export default function render(
-	{ data, merged, heights, ...layout }: Template,
+	{ data, merged, heights, styles, ...layout }: Template,
 	dataArea: [number?, number?],
 	ctx: any,
 	rows: any[],
@@ -133,11 +133,19 @@ export default function render(
 	const dataRows = data.slice(start, end + 1);
 	return {
 		...layout,
-		// TODO: 样式
-		heights: repeat(rows, heights, start, end),
+		heights: repeat(rows, heights || [], start, end),
+		styles: repeat(rows, styles || [], start, end),
 		merged: merged.flatMap(m => {
-			if (m.row < start || m.row + m.rowspan > end) { return m; }
-			return rows.map((_, index) => ({ ...m, row: m.row + length * index }));
+			const s = m.row;
+			const e = m.row + m.rowspan;
+			if (s >= start && e <= end) {
+				return rows.map((_, index) => ({ ...m, row: m.row + length * index }));
+			}
+			if (s <= start && e >= end) {
+				return { ...m, rowspan: m.rowspan + length * (rows.length - 1) };
+			}
+			if (s < end) { return m; }
+			return { ...m, row: m.row + length * (rows.length - 1) };
 
 		}),
 		data: [
