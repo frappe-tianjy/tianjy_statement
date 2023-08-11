@@ -1,23 +1,25 @@
 <template>
-	<ElFormItem label="数据开启止行">
+	<ElFormItem label="数据启止行">
 		<ElInputNumber v-model="startRow" /> ~
 		<ElInputNumber v-model="endRow" />
 	</ElFormItem>
+	<ElFormItem label="固定行列数（仅渲染时有效）">
+		行：
+		<ElInputNumber v-model="fixedRow" />
+		列：
+		<ElInputNumber v-model="fixedCol" />
+	</ElFormItem>
 	<ElFormItem :class="$style.template">
 		<div ref="root"></div>
-
 	</ElFormItem>
 </template>
 <script lang="ts" setup>
-import { computed, shallowRef, watch } from 'vue';
+import { computed, shallowRef, watch, ref } from 'vue';
 import Handsontable from 'handsontable';
-import HyperFormula from 'hyperformula';
 import { ElFormItem, ElInputNumber } from 'element-plus';
 
-import readValue from '../lib/readValue.mjs';
 import toSettings from '../lib/toSettings.mjs';
-import { customStylesRenderer } from '../lib/customStylesRenderer.mjs';
-import rendererStyleMenu from '../lib/rendererStyleMenu.mjs';
+import createEditor from '../lib/createEditor.mjs';
 
 const root = shallowRef<HTMLElement>();
 
@@ -46,7 +48,19 @@ const endRow = computed({
 	get: () => cfg.value?.end_row,
 	set: end_row => { cfg.value = { ...cfg.value, end_row }; },
 });
+const template = shallowRef(JSON.parse(cfg.value.template || 'null'));
+watch(template, (t: any) => {
+	cfg.value.template = JSON.stringify(t);
+});
+const fixedRow = computed({
+	get: () => template.value?.fixedRow || 0,
+	set: fixedRow => { template.value = { ...template.value, fixedRow }; },
+});
 
+const fixedCol = computed({
+	get: () => template.value?.fixedCol || 0,
+	set: fixedCol => { template.value = { ...template.value, fixedCol }; },
+});
 
 interface Named {
 	type?: string;
@@ -59,6 +73,7 @@ function getNamed(named: Named[]) {
 }
 let hat: Handsontable | undefined;
 
+
 watch(root, async () => {
 	if (hat) {
 		hat.destroy();
@@ -66,78 +81,13 @@ watch(root, async () => {
 	}
 	const el = root.value;
 	if (!el) { return; }
-	const table = new Handsontable(el, {
-		startRows: 8,
-		startCols: 6,
-		rowHeaders: true,
-		colHeaders: true,
-		contextMenu: {
-			items: {
-				row_above: {},
-				row_below: {},
-				hr0: '---------',
-				col_left: {},
-				col_right: {},
-				hr1: '---------',
-				remove_row: {},
-				remove_col: {},
-				hr2: '---------',
-				undo: {},
-				redo: {},
-				hr3: '---------',
-				make_read_only: {},
-				hr4: '---------',
-				alignment: {},
-				hr5: '---------',
-				copy: {},
-				cut: {},
-				hr6: '---------',
-				mergeCells: {},
-				hr7: '---------',
-				style: {
-					renderer() {
-						return rendererStyleMenu(table);
-					},
-					disableSelection: false,
-					isCommand: true,
-				},
-			},
-		},
-		manualColumnResize: true,
-		manualRowResize: true,
-		mergeCells: [],
-		height: '100%',
-		language: 'zh-CN',
-		renderer: customStylesRenderer,
-		licenseKey: 'non-commercial-and-evaluation',
-		// @ts-ignore
-		formulas: {
-			engine: HyperFormula,
-			// @ts-ignore
-			namedExpressions: getNamed([
-				...cfg.value.fields || [],
-			]),
-		},
+	const table = createEditor(el, '100%', getNamed([...cfg.value.fields || []]), v => {
+		template.value = { ...template.value, ...v };
 	});
-	const value = JSON.parse(cfg.value.template || 'null');
+	const { value } = template;
 	if (value) {
 		table.updateSettings(toSettings(value));
 	}
-	let timeout: any;
-	const up = () => {
-		clearTimeout(timeout);
-		timeout = setTimeout(() => {
-			cfg.value.template = JSON.stringify(readValue(table));
-		}, 0);
-	};
-	table.updateSettings({
-		afterMergeCells: up,
-		afterUnmergeCells: up,
-		afterColumnResize: up,
-		afterRowResize: up,
-		afterChange: up,
-		afterSetCellMeta: up,
-	});
 	hat = table;
 });
 
@@ -148,7 +98,7 @@ const tt = __;
 
 <style module lang="less">
 .template {
-	height: calc(100% - 100px);
+	height: calc(100% - 200px);
 
 	:global .el-form-item__content {
 		height: 100%;

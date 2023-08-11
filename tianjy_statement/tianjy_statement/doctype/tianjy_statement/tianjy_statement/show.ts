@@ -1,10 +1,7 @@
-import Handsontable from 'handsontable';
-import HyperFormula from 'hyperformula';
-
 import { Template } from '../../../../public/js/types.mjs';
 import render from '../../../../public/js/lib/render.mjs';
 import toSettings from '../../../../public/js/lib/toSettings.mjs';
-import { customStylesRenderer } from '../../../../public/js/lib/customStylesRenderer.mjs';
+import createView from '../../../../public/js/lib/createView.mjs';
 
 import requestDocList from './requestDocList';
 
@@ -47,21 +44,8 @@ export default async function show(
 		...meta.fields.map(v => v.fieldname),
 	]);
 	await transitionend;
-	const handsontable = new Handsontable((dialog as any).fields_dict.show.wrapper, {
-		startRows: 8,
-		startCols: 6,
-		rowHeaders: true,
-		colHeaders: true,
-		height: '600px',
-		manualColumnResize: true,
-		manualRowResize: true,
-		language: 'zh-CN',
-		renderer: customStylesRenderer,
-		licenseKey: 'non-commercial-and-evaluation',
-		formulas: { engine: HyperFormula },
-		// cells: () => ({ readOnly: true }),
-		...toSettings(render(template, dataArea, ctx, rows)),
-	});
+	const handsontable = createView((dialog as any).fields_dict.show.wrapper, '600px');
+	handsontable.updateSettings(toSettings(render(template, dataArea, ctx, rows)));
 	await hidden;
 	handsontable.destroy();
 

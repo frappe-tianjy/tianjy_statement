@@ -5,12 +5,11 @@
 <script setup lang="ts">
 import { computed, ref, shallowRef, watch } from 'vue';
 import Handsontable from 'handsontable';
-import HyperFormula from 'hyperformula';
 
 import toSettings from '../lib/toSettings.mjs';
 import render from '../lib/render.mjs';
 import type { Configuration } from '../types.mjs';
-import { customStylesRenderer } from '../lib/customStylesRenderer.mjs';
+import createView from '../lib/createView.mjs';
 
 
 const root = shallowRef<HTMLElement>();
@@ -22,21 +21,7 @@ const handsontable = computed(() => {
 	}
 	const el = root.value;
 	if (!el) { return; }
-	const table = new Handsontable(el, {
-		startRows: 8,
-		startCols: 6,
-		rowHeaders: true,
-		colHeaders: true,
-		height: '100%',
-		manualColumnResize: true,
-		manualRowResize: true,
-		language: 'zh-CN',
-		renderer: customStylesRenderer,
-		licenseKey: 'non-commercial-and-evaluation',
-		formulas: { engine: HyperFormula },
-		// cells: () => ({ readOnly: true }),
-		// ...toSettings(render(template, dataArea, {}, rows)),
-	});
+	const table = createView(el, '100%');
 	hat = table;
 	return table;
 });
@@ -82,7 +67,11 @@ watch([handsontable, () => props.configuration, () => props.data], ([
 	t, { template, startRow, endRow }, d,
 ]) => {
 	if (!t || !template) { return; }
-	t.updateSettings(toSettings(render(template, [startRow, endRow], {}, d)));
+	t.updateSettings({
+		...toSettings(render(template, [startRow, endRow], {}, d)),
+		fixedRowsTop: template.fixedRow || 0,
+		fixedColumnsStart: template.fixedCol || 0,
+	});
 
 });
 

@@ -9,7 +9,9 @@ export interface Template {
 	/** 列宽 */
 	widths: (number | undefined)[];
 	/** TODO: 样式 */
-	// cellStyles?: any;
+	styles?: any[][];
+	fixedRow?: number;
+	fixedCol?: number;
 }
 
 export interface Configuration {

@@ -1,6 +1,6 @@
 import Handsontable from 'handsontable';
 
-export function customStylesRenderer(
+export default function customStylesRenderer(
 	hotInstance: Handsontable.Core,
 	TD: HTMLTableCellElement,
 	row: number,

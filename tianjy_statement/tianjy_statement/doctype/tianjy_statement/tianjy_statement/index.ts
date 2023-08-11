@@ -2,15 +2,13 @@
 // For license information, please see license.txt
 
 import HyperFormula from 'hyperformula';
-import Handsontable from 'handsontable';
 import 'handsontable/languages';
 import { registerAllModules } from 'handsontable/registry';
 
 import toSettings from '../../../../public/js/lib/toSettings.mjs';
 import readValue from '../../../../public/js/lib/readValue.mjs';
 import type { Template } from '../../../../public/js/types.mjs';
-import { customStylesRenderer } from '../../../../public/js/lib/customStylesRenderer.mjs';
-import rendererStyleMenu from '../../../../public/js/lib/rendererStyleMenu.mjs';
+import createEditor from '../../../../public/js/lib/createEditor.mjs';
 
 import show from './show';
 
@@ -28,69 +26,7 @@ function getNamed(named: Named[]) {
 }
 
 function createTable(root: HTMLElement, update: (v: Template) => void) {
-	const table = new Handsontable(root, {
-		startRows: 8,
-		startCols: 6,
-		rowHeaders: true,
-		colHeaders: true,
-		contextMenu: {
-			items: {
-				row_above: {},
-				row_below: {},
-				hr0: '---------',
-				col_left: {},
-				col_right: {},
-				hr1: '---------',
-				remove_row: {},
-				remove_col: {},
-				hr2: '---------',
-				undo: {},
-				redo: {},
-				hr3: '---------',
-				make_read_only: {},
-				hr4: '---------',
-				alignment: {},
-				hr5: '---------',
-				copy: {},
-				cut: {},
-				hr6: '---------',
-				mergeCells: {},
-				hr7: '---------',
-				style: {
-					renderer() {
-						return rendererStyleMenu(table);
-					},
-					disableSelection: false,
-					isCommand: true,
-				},
-			},
-		},
-		manualColumnResize: true,
-		manualRowResize: true,
-		mergeCells: [],
-		height: '600px',
-		language: 'zh-CN',
-		renderer: customStylesRenderer,
-		licenseKey: 'non-commercial-and-evaluation',
-		// @ts-ignore
-		formulas: { engine: HyperFormula, namedExpressions: [] },
-	});
-	let timeout: any;
-	const up = () => {
-		clearTimeout(timeout);
-		timeout = setTimeout(() => {
-			update(readValue(table));
-		}, 0);
-	};
-	table.updateSettings({
-		afterMergeCells: up,
-		afterUnmergeCells: up,
-		afterColumnResize: up,
-		afterRowResize: up,
-		afterChange: up,
-		afterSetCellMeta: up,
-	});
-	return table;
+	return createEditor(root, '600px', [], update);
 
 }
 
