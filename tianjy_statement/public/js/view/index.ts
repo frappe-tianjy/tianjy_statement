@@ -1,7 +1,6 @@
 import defineMainView from 'guiguLib/defineMainView';
 import 'handsontable/languages';
 import { registerAllModules } from 'handsontable/registry';
-import 'handsontable/dist/handsontable.full.css';
 
 import type { Configuration } from '../types.mjs';
 
