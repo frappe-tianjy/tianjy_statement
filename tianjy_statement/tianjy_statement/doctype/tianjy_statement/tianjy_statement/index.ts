@@ -6,11 +6,10 @@ import 'handsontable/languages';
 import { registerAllModules } from 'handsontable/registry';
 
 import toSettings from '../../../../public/js/lib/toSettings.mjs';
-import readValue from '../../../../public/js/lib/readValue.mjs';
 import type { Template } from '../../../../public/js/types.mjs';
 import createEditor from '../../../../public/js/lib/createEditor.mjs';
 
-import show from './show';
+import initShow from './initShow';
 
 registerAllModules();
 
@@ -48,15 +47,7 @@ function updateTemplateEditorNamed(frm: any) {
 }
 frappe.ui.form.on('Tianjy Statement', {
 	refresh: function (frm) {
-		frm.add_custom_button('Show', () => {
-			const doc = frm.doc as any;
-			show(
-				JSON.parse(doc.template || 'null'),
-				[doc.start_row, doc.end_row],
-				doc.doc_type,
-				Object.fromEntries(((frm.doc as any).quick_filters || []).map((v: any) => [v.field, v.text])),
-			);
-		});
+		initShow(frm);
 		let templateEditor = (frm as any).__templateEditor;
 		if (!templateEditor) {
 			// @ts-ignore

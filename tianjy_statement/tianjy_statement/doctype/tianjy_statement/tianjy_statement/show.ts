@@ -4,7 +4,7 @@ import toSettings from '../../../../public/js/lib/toSettings.mjs';
 import createView from '../../../../public/js/lib/createView.mjs';
 
 import requestDocList from './requestDocList';
-
+import make_standard_filters from './makeFilters.mjs';
 
 export default async function show(
 	template: Template | null,
@@ -28,7 +28,10 @@ export default async function show(
 		// @ts-ignore
 		title: __('测试微信模板消息'),
 		on_hide() { hide(); },
-		fields: [{ fieldtype: 'HTML', fieldname: 'show', label: '' }],
+		fields: [
+			{ fieldtype: 'HTML', fieldname: 'filters', label: '' },
+			{ fieldtype: 'HTML', fieldname: 'show', label: '' },
+		],
 	});
 	const modal = dialog.$wrapper[0]?.querySelector('.modal-dialog');
 	const transitionend = modal ? new Promise<void>(r => {
@@ -39,13 +42,24 @@ export default async function show(
 	const meta = frappe.get_meta(doctype) || await new Promise<locals.DocType>(resolve => {
 		frappe.model.with_doctype(doctype, () => { resolve(frappe.get_meta(doctype)!); }, true);
 	});
-	const rows = await requestDocList(meta, [
-		...frappe.model.std_fields.map(v => typeof v === 'string' ? v : v.fieldname),
-		...meta.fields.map(v => v.fieldname),
-	]);
+
+
 	await transitionend;
 	const handsontable = createView((dialog as any).fields_dict.show.wrapper, '600px');
-	handsontable.updateSettings(toSettings(render(template, dataArea, ctx, rows)));
+	let k = 0;
+	const update = async (ctx: any) => {
+		k++;
+		const v = k;
+		const rows = await requestDocList(meta, [
+			...frappe.model.std_fields.map(v => typeof v === 'string' ? v : v.fieldname),
+			...meta.fields.map(v => v.fieldname),
+		]);
+		if (v !== k) { return; }
+		handsontable.updateSettings(toSettings(render(template, dataArea, ctx, rows)));
+
+	};
+	const r = make_standard_filters(meta, (dialog as any).fields_dict.filters.wrapper, ctx, update);
+	update({});
 	await hidden;
 	handsontable.destroy();
 

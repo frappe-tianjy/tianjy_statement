@@ -6,6 +6,9 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "\u9884\u89c8_tab",
+  "show",
+  "\u914d\u7f6e_tab",
   "label",
   "doc_type",
   "template",
@@ -94,11 +97,25 @@
   {
    "fieldname": "section_break_pk21n",
    "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "\u9884\u89c8_tab",
+   "fieldtype": "Tab Break",
+   "label": "\u9884\u89c8"
+  },
+  {
+   "fieldname": "\u914d\u7f6e_tab",
+   "fieldtype": "Tab Break",
+   "label": "\u914d\u7f6e"
+  },
+  {
+   "fieldname": "show",
+   "fieldtype": "HTML"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-08-10 17:31:02.503650",
+ "modified": "2023-08-14 15:06:29.781753",
  "modified_by": "Administrator",
  "module": "Tianjy Statement",
  "name": "Tianjy Statement",

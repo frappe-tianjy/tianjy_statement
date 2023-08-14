@@ -1,0 +1,10 @@
+.tianjy_statement_filters {
+	flex-wrap: wrap;
+	display: flex;
+}
+
+.tianjy_statement_filters .form-group {
+	min-width: 150px;
+	padding: 0px 5px;
+	margin: 5px 0px;
+}

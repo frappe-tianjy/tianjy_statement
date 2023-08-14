@@ -7,7 +7,10 @@ app_description = "天玑报表 Tianjy Statement"
 app_email = "Tianjy"
 app_license = "MIT"
 
-app_include_css = "tianjy_statement.bundle.guigu.css"
+app_include_css = [
+	"tianjy_statement.bundle.guigu.css",
+	"tianjy_statement.bundle.css",
+]
 app_include_js = "tianjy_statement.bundle.guigu.ts"
 
 
