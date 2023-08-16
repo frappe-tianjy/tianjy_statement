@@ -5,5 +5,5 @@
 from frappe.tests.utils import FrappeTestCase
 
 
-class TestTianjyStatement(FrappeTestCase):
+class TestTianjyStatementConfiguration(FrappeTestCase):
 	pass

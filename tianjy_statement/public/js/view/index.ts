@@ -1,15 +1,10 @@
 import defineMainView from 'guiguLib/defineMainView';
-import 'handsontable/languages';
-import { registerAllModules } from 'handsontable/registry';
 
 import type { Configuration } from '../types.mjs';
 
 import View from './Main.vue';
 import FieldsConfig from './FieldsConfig.vue';
 import TemplateConfig from './TemplateConfig.vue';
-
-
-registerAllModules();
 
 
 defineMainView<Configuration>({
