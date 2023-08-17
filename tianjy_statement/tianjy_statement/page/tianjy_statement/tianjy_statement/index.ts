@@ -1,19 +1,16 @@
 // Copyright (c) 2023, 天玑 Tianjy and contributors
 // For license information, please see license.txt
 
-
 import initShow from './initShow';
 const doctype = 'Tianjy Statement Configuration';
 
-function get_doc (name: string) {
+function get_template(name: string) {
 	return new Promise((resolve, reject) => {
 		frappe.call({
-			method: 'frappe.client.get',
+			method: 'tianjy_statement.statement.get_template',
 			type: 'GET',
 			args: { doctype, name },
-			callback: r => {
-				resolve(r.message);
-			},
+			callback: r => { resolve(r.message); },
 		}).fail(reject);
 	});
 }
@@ -49,7 +46,7 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 		}
 		k++;
 		let kk = k;
-		const doc: any = await get_doc(lastName);
+		const doc: any = await get_template(lastName);
 		if (kk !== k) { return; }
 		const dt = doc.doc_type;
 		if (!dt) {

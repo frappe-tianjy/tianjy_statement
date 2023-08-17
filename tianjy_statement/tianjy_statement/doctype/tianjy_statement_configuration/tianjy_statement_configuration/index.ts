@@ -44,7 +44,20 @@ function updateTemplateEditorNamed(frm: any) {
 }
 frappe.ui.form.on('Tianjy Statement Configuration', {
 	refresh: function (frm) {
-		frm.add_custom_button('Preview', () => { preview(frm.doc); });
+		if (!frm.is_new()) {
+			const doc = {...frm.doc as any};
+			const doctype: string = doc.doc_type;
+			const template: Template | null =JSON.parse(doc.template || 'null');
+			if (doctype && template) {
+				const dataArea: [number, number] = [doc.start_row, doc.end_row];
+				const {name} = doc;
+				const quickFilters = doc.quick_filters;
+				frm.add_custom_button('Preview', () => {
+					preview(name, doctype, template, dataArea, quickFilters);
+				});
+			}
+
+		}
 		let templateEditor = (frm as any).__templateEditor;
 		if (!templateEditor) {
 			// @ts-ignore

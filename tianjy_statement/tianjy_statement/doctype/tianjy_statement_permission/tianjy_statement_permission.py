@@ -4,5 +4,5 @@
 # import frappe
 from frappe.model.document import Document
 
-class TianjyStatementConfiguration(Document):
-	DOCTYPE="Tianjy Statement Configuration"
+class TianjyStatementPermission(Document):
+	pass
