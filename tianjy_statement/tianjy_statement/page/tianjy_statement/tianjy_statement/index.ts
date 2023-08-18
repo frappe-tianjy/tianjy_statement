@@ -22,6 +22,10 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 	head.style.padding = '8px 0';
 	head.className = 'flex title-area';
 	const h3 = head.appendChild(document.createElement('h3'));
+	const exportButton = document.createElement('button');
+	exportButton.hidden = true;
+	exportButton.appendChild(document.createTextNode(__('Export')));
+	head.appendChild(exportButton);
 	h3.title = label;
 	h3.className = 'ellipsis title-text';
 	h3.appendChild(document.createTextNode(label));
@@ -59,7 +63,20 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 		});
 		if (kk !== k) { return; }
 		destroy();
-		destroy = initShow(wrapper, meta, doc) || (() => {});
+		const template = JSON.parse(doc.template || 'null');
+		if (!template) {
+			destroy = () => {};
+			return;
+		}
+		const [dest, exportXLSX] = initShow(wrapper, meta, doc, template);
+
+		exportButton.hidden = false;
+		exportButton.addEventListener('click', exportXLSX);
+		destroy = () => {
+			dest();
+			exportButton.hidden = true;
+			exportButton.removeEventListener('click', exportXLSX);
+		};
 	}
 
 	f = frappe.ui.form.make_control({
@@ -79,6 +96,8 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 			input_class: 'input-xs',
 		}, parent: $(head), only_input: true,
 	});
+
+	head.appendChild(exportButton);
 	const p = location.pathname.split('/').filter(Boolean);
 	if (p[0] === 'app' && p[1] === 'tianjy-statement') {
 		const [,, name] = p;

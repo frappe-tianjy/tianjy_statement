@@ -32,8 +32,6 @@ export default function createEditor(
 				undo: {},
 				redo: {},
 				hr3: '---------',
-				make_read_only: {},
-				hr4: '---------',
 				alignment: {},
 				hr5: '---------',
 				copy: {},

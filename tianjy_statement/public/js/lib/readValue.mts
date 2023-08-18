@@ -1,15 +1,15 @@
 import type Handsontable from 'handsontable';
 
-import type { Template } from '../types.mjs';
+import type { Template, TemplateStyle } from '../types.mjs';
 
 
 function getStyles(hot: Handsontable) {
 
-	const styles: Record<string, any>[][] = [];
+	const styles: TemplateStyle[][] = [];
 	for (const meta of hot.getCellsMeta()) {
 		const { row, col, bold, color, bgColor, italic, underline, className } = meta;
 		while (styles.length <= row) { styles.push([]); }
-		const style: Record<string, any> = {};
+		const style: TemplateStyle = {};
 		if (bold) { style.bold = 1; }
 		if (italic) { style.italic = 1; }
 		if (underline) { style.underline = 1; }
@@ -40,12 +40,14 @@ function getStyles(hot: Handsontable) {
 
 export default function readValue(
 	handsontable: Handsontable,
+	hasValue?: boolean,
 ): Template {
 	const data = handsontable.getSourceData().map(v => [...v as any]);
 	const maxCol = data.reduce((m, v) => Math.max(m, v.length), 0);
 	const maxRow = data.length;
 	return {
 		data,
+		value: hasValue && handsontable.getData().map((v: any) => [...v as any]) || undefined,
 		styles: getStyles(handsontable),
 		merged: handsontable.getPlugin('mergeCells')
 			// @ts-ignore

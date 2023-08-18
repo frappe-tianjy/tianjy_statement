@@ -3,6 +3,8 @@ import HyperFormula from 'hyperformula';
 
 import customStylesRenderer from '../lib/customStylesRenderer.mjs';
 
+import rendererStyleMenu from './rendererStyleMenu.mjs';
+
 export default function createView(
 	el: HTMLElement,
 	height: string,
@@ -15,6 +17,36 @@ export default function createView(
 		height,
 		manualColumnResize: true,
 		manualRowResize: true,
+		contextMenu: {
+			items: {
+				row_above: {},
+				row_below: {},
+				hr0: '---------',
+				col_left: {},
+				col_right: {},
+				hr1: '---------',
+				remove_row: {},
+				remove_col: {},
+				hr2: '---------',
+				undo: {},
+				redo: {},
+				hr3: '---------',
+				alignment: {},
+				hr5: '---------',
+				copy: {},
+				cut: {},
+				hr6: '---------',
+				mergeCells: {},
+				hr7: '---------',
+				style: {
+					renderer() {
+						return rendererStyleMenu(table);
+					},
+					disableSelection: false,
+					isCommand: true,
+				},
+			},
+		},
 		language: 'zh-CN',
 		renderer: customStylesRenderer,
 		licenseKey: 'non-commercial-and-evaluation',
