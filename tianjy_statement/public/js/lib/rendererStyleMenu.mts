@@ -44,9 +44,10 @@ function createColorStyle(title: string, color: string | undefined, cb: (v: stri
 
 export default function rendererStyleMenu(table: Handsontable.Core) {
 	const a = table.getSelectedRange()?.[0]?.from;
-	const meta: Record<string, any> = a ? table.getCellMeta(a.row, a.col) : {};
+	const meta: Record<string, any> = a
+		&& table.getCellMeta(Math.max(0, a.row), Math.max(0, a.col))
+		|| {};
 	const el = document.createElement('div');
-
 
 	const div = el.appendChild(document.createElement('div'));
 

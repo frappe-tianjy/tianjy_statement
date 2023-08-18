@@ -1,6 +1,6 @@
 import render from '../../../../public/js/lib/render.mjs';
 import toSettings from '../../../../public/js/lib/toSettings.mjs';
-import createView from '../../../../public/js/lib/createView.mjs';
+import createEditor from '../../../../public/js/lib/createEditor.mjs';
 import exportXLSX from '../../../../public/js/lib/exportXLSX.mjs';
 import readValue from '../../../../public/js/lib/readValue.mjs';
 
@@ -30,7 +30,7 @@ export default function initShow(
 	const filterDiv = root.appendChild(document.createElement('div'));
 	const el = root.appendChild(document.createElement('div'));
 	el.style.flex = '1';
-	const handsontable = createView(el, '100%');
+	const handsontable = createEditor(el, '100%');
 	let destroyed = false;
 
 	let k = 0;

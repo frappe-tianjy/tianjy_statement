@@ -1,7 +1,7 @@
 import { Template } from '../../../../public/js/types.mjs';
 import render from '../../../../public/js/lib/render.mjs';
 import toSettings from '../../../../public/js/lib/toSettings.mjs';
-import createView from '../../../../public/js/lib/createView.mjs';
+import createEditor from '../../../../public/js/lib/createEditor.mjs';
 
 import make_standard_filters from './makeFilters.mjs';
 
@@ -49,7 +49,7 @@ export default async function preview(
 
 
 	await transitionend;
-	const handsontable = createView((dialog as any).fields_dict.show.wrapper, '600px');
+	const handsontable = createEditor((dialog as any).fields_dict.show.wrapper, '600px');
 	let k = 0;
 	let destroyed = false;
 	const update = async (data: any) => {
@@ -66,6 +66,4 @@ export default async function preview(
 	await hidden;
 	handsontable.destroy();
 	destroyed = true;
-
-
 }

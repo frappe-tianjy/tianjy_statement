@@ -11,7 +11,7 @@ export default function createEditor(
 	el: HTMLElement,
 	height: string,
 	namedExpressions: any[] = [],
-	cb: (template: Template) => void,
+	cb?: (template: Template) => void,
 ) {
 	const table: Handsontable = new Handsontable(el, {
 		startRows: 8,
@@ -48,18 +48,19 @@ export default function createEditor(
 				},
 			},
 		},
+		height,
 		manualColumnResize: true,
 		manualRowResize: true,
 		manualColumnFreeze: true,
 		manualRowFreeze: true,
 		mergeCells: [],
-		height,
 		language: 'zh-CN',
 		renderer: customStylesRenderer,
 		licenseKey: 'non-commercial-and-evaluation',
 		// @ts-ignore
 		formulas: { engine: HyperFormula, namedExpressions },
 	});
+	if (typeof cb !== 'function') { return table; }
 	let timeout: any;
 	const update = () => {
 		clearTimeout(timeout);

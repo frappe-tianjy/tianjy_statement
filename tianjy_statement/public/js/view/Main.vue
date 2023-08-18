@@ -9,7 +9,7 @@ import Handsontable from 'handsontable';
 import toSettings from '../lib/toSettings.mjs';
 import render from '../lib/render.mjs';
 import type { Configuration } from '../types.mjs';
-import createView from '../lib/createView.mjs';
+import createEditor from '../lib/createEditor.mjs';
 
 
 const root = shallowRef<HTMLElement>();
@@ -21,7 +21,7 @@ const handsontable = computed(() => {
 	}
 	const el = root.value;
 	if (!el) { return; }
-	const table = createView(el, '100%');
+	const table = createEditor(el, '100%');
 	hat = table;
 	return table;
 });

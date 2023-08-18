@@ -22,10 +22,16 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 	head.style.padding = '8px 0';
 	head.className = 'flex title-area';
 	const h3 = head.appendChild(document.createElement('h3'));
+	const refreshButton = document.createElement('button');
+	refreshButton.hidden = true;
+	refreshButton.className = 'btn btn-default btn-sm';
+	refreshButton.style.marginBottom = 'auto';
+	refreshButton.appendChild(document.createTextNode(__('Refresh')));
 	const exportButton = document.createElement('button');
 	exportButton.hidden = true;
+	exportButton.className = 'btn btn-default btn-sm';
+	exportButton.style.marginBottom = 'auto';
 	exportButton.appendChild(document.createTextNode(__('Export')));
-	head.appendChild(exportButton);
 	h3.title = label;
 	h3.className = 'ellipsis title-text';
 	h3.appendChild(document.createTextNode(label));
@@ -34,23 +40,22 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 	wrapper.style.flexDirection = 'column';
 	wrapper.style.height = 'calc(100vh - 60px)';
 	let destroy =noop;
-	let lastName = '';
+	let name = '';
 	let k = 0;
 	let f: frappe.ui.form.Control | undefined;
-	async function update(v?: string) {
-		if (!v || lastName === v) { return; }
-		lastName = v;
-		if (f && f.get_value() !== v) {
-			f.set_value(v);
+	async function update(newName?: string) {
+		if (newName) { name = newName; }
+		if (!name) { return; }
+		if (f && f.get_value() !== newName) {
+			f.set_value(newName);
 		}
-
 		const p = location.pathname.split('/').filter(Boolean);
 		if (p[0] === 'app' && p[1] === 'tianjy-statement') {
-			history.replaceState({}, '', `/app/tianjy-statement/${encodeURIComponent(v)}`);
+			history.replaceState({}, '', `/app/tianjy-statement/${encodeURIComponent(name)}`);
 		}
 		k++;
 		let kk = k;
-		const doc: any = await get_template(lastName);
+		const doc: any = await get_template(name);
 		if (kk !== k) { return; }
 		const dt = doc.doc_type;
 		if (!dt) {
@@ -70,10 +75,12 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 		}
 		const [dest, exportXLSX] = initShow(wrapper, meta, doc, template);
 
+		refreshButton.hidden = false;
 		exportButton.hidden = false;
 		exportButton.addEventListener('click', exportXLSX);
 		destroy = () => {
 			dest();
+			refreshButton.hidden = true;
 			exportButton.hidden = true;
 			exportButton.removeEventListener('click', exportXLSX);
 		};
@@ -87,7 +94,7 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 			onchange() {
 				if (!f) { return; }
 				const value = f.get_value();
-				if (!value) { return; }
+				if (!value || name === value) { return; }
 				update(value);
 			},
 			is_filter: 1,
@@ -97,6 +104,9 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 		}, parent: $(head), only_input: true,
 	});
 
+
+	refreshButton.addEventListener('click', () => update());
+	head.appendChild(refreshButton);
 	head.appendChild(exportButton);
 	const p = location.pathname.split('/').filter(Boolean);
 	if (p[0] === 'app' && p[1] === 'tianjy-statement') {
