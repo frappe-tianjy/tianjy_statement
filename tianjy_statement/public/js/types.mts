@@ -28,8 +28,8 @@ export interface Template {
 	widths: (number | undefined)[];
 	/** TODO: 样式 */
 	styles?: TemplateStyle[][];
-	fixedRow?: number;
-	fixedCol?: number;
+	freezeRow?: number;
+	freezeCol?: number;
 }
 
 export interface Configuration {

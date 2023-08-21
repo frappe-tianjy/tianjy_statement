@@ -103,24 +103,28 @@ function getStyle(style: TemplateStyle, s: XLSXStyle = {}) {
 
 }
 export default function exportXLSX(template: Template) {
-	const {value} = template;
+	const {value, data, widths, heights, merged, styles, freezeCol, freezeRow} = template;
 	const ws = XLSX.utils.aoa_to_sheet(
 		value
-			? template.data.map((v, r) => v.map((f, c) => {
+			? data.map((v, r) => v.map((f, c) => {
 				if (typeof f === 'string' && f[0] === '=') {
 					return [value[r]?.[c] ?? null, f];
 				}
 				return f;
 			}))
-			: template.data,
+			: data,
 	);
-	ws['!cols'] = template.widths.map(wpx => ({wpx}));
-	ws['!rows'] = template.heights.map(hpx => ({hpx}));
-	ws['!merges'] = template.merged.map(({row, col, rowspan, colspan}) => ({
+	ws['!cols'] = widths.map(wpx => ({wpx}));
+	ws['!rows'] = heights.map(hpx => ({hpx}));
+	ws['!merges'] = merged.map(({row, col, rowspan, colspan}) => ({
 		s: {c: col, r: row},
 		e: {c: col + colspan - 1, r: row + rowspan - 1},
 	}));
-	for (const [R, row] of template.styles?.entries() || []) {
+	if (freezeCol && freezeRow) {
+		const ref = XLSX.utils.encode_cell({c: freezeCol, r: freezeRow});
+		ws['!freeze'] = ref;
+	}
+	for (const [R, row] of styles?.entries() || []) {
 		for (const [C, style] of row?.entries() || []) {
 			if (!style) { continue; }
 			const ref = XLSX.utils.encode_cell({ c: C, r: R });

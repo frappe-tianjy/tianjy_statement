@@ -67,12 +67,7 @@ watch([handsontable, () => props.configuration, () => props.data], ([
 	t, { template, startRow, endRow }, d,
 ]) => {
 	if (!t || !template) { return; }
-	t.updateSettings({
-		...toSettings(render(template, [startRow, endRow], {}, d)),
-		fixedRowsTop: template.fixedRow || 0,
-		fixedColumnsStart: template.fixedCol || 0,
-	});
-
+	t.updateSettings(toSettings(render(template, [startRow, endRow], {}, d)));
 });
 
 </script>

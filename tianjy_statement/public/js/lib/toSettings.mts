@@ -23,12 +23,14 @@ function getClassName(s: Record<string, any>) {
 
 
 export default function toSettings(value: Template) {
-	const { data, merged, widths, heights, styles } = value;
+	const { data, merged, widths, heights, styles, freezeRow, freezeCol } = value;
 	return {
 		data: data.map(v => [...v]),
 		mergeCells: merged || [],
 		colWidths: widths || [],
 		rowHeights: heights || [],
+		fixedRowsTop: freezeRow || 0,
+		fixedColumnsStart: freezeCol || 0,
 		cell: styles?.flatMap((v, row) => v.map((s, col) => ({
 			row, col,
 			bold: s.bold,

@@ -42,6 +42,7 @@ export default function readValue(
 	handsontable: Handsontable,
 	hasValue?: boolean,
 ): Template {
+	const settings = handsontable.getSettings();
 	const data = handsontable.getSourceData().map(v => [...v as any]);
 	const maxCol = data.reduce((m, v) => Math.max(m, v.length), 0);
 	const maxRow = data.length;
@@ -49,6 +50,8 @@ export default function readValue(
 		data,
 		value: hasValue && handsontable.getData().map((v: any) => [...v as any]) || undefined,
 		styles: getStyles(handsontable),
+		freezeRow: settings.fixedRowsTop,
+		freezeCol: settings.fixedColumnsStart,
 		merged: handsontable.getPlugin('mergeCells')
 			// @ts-ignore
 			?.mergedCellsCollection
