@@ -19,6 +19,13 @@ def get_template(name: str):
 		return doc
 	doc.raise_no_permission_to('read')
 
+
+def get_con(meta,k,v):
+	if not isinstance(v, list): return '='
+	if not meta.get('fields', dict(fieldname=k, fieldtype=('in', ['Date', 'Datetime']))): return '='
+	return 'Between'
+
+
 @frappe.whitelist()
 def get_data(name: str, ctx = {}):
 	doc = get_template(name)
@@ -26,7 +33,12 @@ def get_data(name: str, ctx = {}):
 	doctype = doc.doc_type
 	meta = frappe.get_meta(doctype)
 	if isinstance(ctx, str): ctx = json.loads(ctx)
-	filters = json.loads(doc.filters or '[]') + [[doctype, k, '=', v]for k,v in ctx.items()]
+	filters = json.loads(doc.filters or '[]') + [[doctype, k, get_con(meta,k,v), v]  for k,v in ctx.items()]
 	or_filters = json.loads(doc.or_filters or '[]')
 	fields = set(v.field for v in doc.get('fields') or [])
-	return get_data_by_doctype(meta, fields, filters,or_filters,ctx)
+	order_by = []
+	# order_by: order?.map(v => {
+	# 	const [field, desc] = typeof v === 'string' ? [v] : v;
+	# 	return `${getFieldName(doctype, field)} ${desc ? 'DESC' : 'ASC'}`;
+	# }).join(', ') || undefined,
+	return get_data_by_doctype(meta, fields, filters,or_filters,order_by, ctx)

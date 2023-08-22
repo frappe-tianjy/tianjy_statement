@@ -2,8 +2,7 @@ import { Template } from '../../../../public/js/types.mjs';
 import render from '../../../../public/js/lib/render.mjs';
 import toSettings from '../../../../public/js/lib/toSettings.mjs';
 import createEditor from '../../../../public/js/lib/createEditor.mjs';
-
-import make_standard_filters from './makeFilters.mjs';
+import make_standard_filters from '../../../../public/js/lib/makeFilters.mjs';
 
 
 async function get_data(name: string, ctx: Record<string, any>) {

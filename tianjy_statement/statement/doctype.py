@@ -1,14 +1,16 @@
+from datetime import datetime, timedelta
 import frappe
+from frappe import _
 import frappe.model.utils
 from ..tianjy_statement.doctype.tianjy_statement_configuration.tianjy_statement_configuration import TianjyStatementConfiguration
 
-def get_data_by_doctype(meta, fields, filters,or_filters, ctx):
+def get_data_by_doctype(meta, fields, filters,or_filters, order_by, ctx):
 	return dict(
-		list=get_list(meta, fields, filters, or_filters),
+		list=get_list(meta, fields, filters, or_filters, order_by),
 		ctx=get_ctx(meta, ctx)
 	)
 
-def get_list(meta, fields, filters, or_filters):
+def get_list(meta, fields, filters, or_filters, order_by):
 	# Map<string, { field: string; props: Set<string>; }>
 
 	fields = (
@@ -23,11 +25,7 @@ def get_list(meta, fields, filters, or_filters):
 		fields=list(fields),
 		filters=filters,
 		guigu_or_filters=or_filters,
-		order_by=[],
-		# order_by: order?.map(v => {
-		# 	const [field, desc] = typeof v === 'string' ? [v] : v;
-		# 	return `${getFieldName(doctype, field)} ${desc ? 'DESC' : 'ASC'}`;
-		# }).join(', ') || undefined,
+		order_by=order_by,
 		page_length=0,
 	)
 
@@ -62,11 +60,43 @@ def get_list(meta, fields, filters, or_filters):
 				if k in map: v[p] = map[k]
 	return values
 
+
+def get_date_range_text(start, end):
+	if start == end: return start
+	s = datetime.strptime(start, '%Y-%m-%d')
+	e = datetime.strptime(end, '%Y-%m-%d')
+	sm = s - timedelta(1)
+	ep = e + timedelta(1)
+	if s.year - 1 == sm.year and e.year + 1 == ep.year:
+		if s.year == e.year:
+			return f"{s.year}年"
+		else:
+			return f"{s.year}年~{e.year}年"
+	if (s.year - 1 == sm.year or s.month - 1 == sm.month) and (e.year + 1 == ep.year or e.month + 1 == ep.month):
+
+		if s.year == e.year and s.month == e.month:
+			return f"{s.year}年{s.month}月"
+		elif s.year == e.year:
+			return f"{s.year}年{s.month}月~{e.month}月"
+		else:
+			return f"{s.year}年{s.month}月~{e.year}年{e.month}月"
+	return f"{start}~{end}"
+
 def get_ctx(meta, ctx):
 	linkOptions = {f.fieldname: f.options for f in meta.fields if f.fieldtype in ['Link', 'Tree Select']}
-	def get(value, doctype):
+	dateFields = [f.fieldname for f in meta.fields if f.fieldtype in ['Date', 'Datetime']]
+	def get(value, k):
 		if not value: return value
+		if k in dateFields:
+			if not isinstance(value, list):
+				return value
+			start=value[0]
+			end=value[1]
+			return dict(start=start, end=end, _text=get_date_range_text(start, end))
+		doctype = linkOptions.get(k, None)
 		if not doctype: return value
-		return frappe.db.get_value(doctype, value, cache=True) or value
+		title = frappe.db.get_value(doctype, value, cache=True)
+		if title: return _(title)
+		return  value
 
-	return { k: get(v, linkOptions.get(k, None)) for k,v in ctx.items() }
+	return { k: get(v, k) for k,v in ctx.items() }

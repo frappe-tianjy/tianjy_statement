@@ -3,8 +3,7 @@ import toSettings from '../../../../public/js/lib/toSettings.mjs';
 import createEditor from '../../../../public/js/lib/createEditor.mjs';
 import exportXLSX from '../../../../public/js/lib/exportXLSX.mjs';
 import readValue from '../../../../public/js/lib/readValue.mjs';
-
-import make_standard_filters from './makeFilters.mjs';
+import make_standard_filters from '../../../../public/js/lib/makeFilters.mjs';
 
 async function get_data(name: string, ctx: Record<string, any>) {
 	return new Promise<any>((resolve, reject) => {

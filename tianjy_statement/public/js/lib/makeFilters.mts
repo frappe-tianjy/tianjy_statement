@@ -1,3 +1,4 @@
+const dateTypes = new Set(['Date', 'Datetime']);
 export default function makeFilters(meta, parent, filters, update) {
 	const doctype_fields = meta.fields;
 	parent.classList.add('tianjy_statement_filters');
@@ -32,6 +33,8 @@ export default function makeFilters(meta, parent, filters, update) {
 				fieldtype = 'Data';
 				options = '';
 			}
+		} if ( dateTypes.has(fieldtype)) {
+			fieldtype = 'DateRange';
 		}
 
 		fields.set(fieldname, { fieldtype, label: __(label), options, fieldname });
@@ -61,7 +64,6 @@ export default function makeFilters(meta, parent, filters, update) {
 				onchange,
 				is_filter: 1,
 				placeholder: label,
-				condition: '=',
 				input_class: 'input-xs',
 			}, parent, only_input: fieldtype === 'Check' ? false : true,
 		});

@@ -8,9 +8,19 @@ function replace(
 	if (typeof value !== 'string' || value[0] !== '=') { return value; }
 
 	// eslint-disable-next-line vue/max-len
-	return value.replace(/"(?:[^"]|"")*"|(?<!:|\d)(\$?[A-Z]+\$?\d+(?::\$?[A-Z]+\$?\d+)?)(?![\dA-Z]|:)|([A-Z]+\.[A-Z\d_]+)/ig, (_, r, n) => {
+	return value.replace(/"(?:[^"]|"")*"|(?<!:|\d)(\$?[A-Z]+\$?\d+(?::\$?[A-Z]+\$?\d+)?)(?![\dA-Z]|:)|([A-Z]+(?:\.[A-Z\d_]+)+)/ig, (_, r, n) => {
 		if (n) {
-			const v = replaceName(n);
+			let v = replaceName(n);
+			if (v && typeof v === 'object') {
+				for (const k of ['_value', '_text', 'value', 'text']) {
+					const r = v[k];
+					if (['number', 'boolean', 'bigint', 'string'].includes(typeof r)) {
+						v = r;
+						continue;
+					}
+				}
+			}
+			if (v && typeof v === 'object') { v = String(v); }
 			if (['number', 'boolean', 'bigint'].includes(typeof v)) { return String(v); }
 			if (typeof v === 'string') { return `"${v.replace(/"/g, '""')}"`; }
 			return 0;
