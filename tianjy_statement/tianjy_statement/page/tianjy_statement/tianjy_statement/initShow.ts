@@ -17,7 +17,8 @@ async function get_data(name: string, ctx: Record<string, any>) {
 
 
 export default function initShow(
-	root: HTMLElement,
+	body: HTMLElement,
+	filterDiv: HTMLElement,
 	meta: locals.DocType,
 	doc: any,
 	template: any,
@@ -26,10 +27,7 @@ export default function initShow(
 	const ctx = doc.quick_filters || [];
 	const {name} = doc;
 
-	const filterDiv = root.appendChild(document.createElement('div'));
-	const el = root.appendChild(document.createElement('div'));
-	el.style.flex = '1';
-	const handsontable = createEditor(el, '100%');
+	const handsontable = createEditor(body, '100%');
 	let destroyed = false;
 
 	let k = 0;
@@ -48,8 +46,6 @@ export default function initShow(
 		if (destroyed) { return; }
 		destroyed = true;
 		handsontable.destroy();
-		filterDiv.remove();
-		el.remove();
 	}, () => {
 		exportXLSX(readValue(handsontable, true));
 	}];

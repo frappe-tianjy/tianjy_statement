@@ -22,24 +22,32 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 	head.style.padding = '8px 0';
 	head.className = 'flex title-area';
 	const h3 = head.appendChild(document.createElement('h3'));
-	const refreshButton = document.createElement('button');
-	refreshButton.hidden = true;
-	refreshButton.className = 'btn btn-default btn-sm';
-	refreshButton.style.marginBottom = 'auto';
-	refreshButton.appendChild(document.createTextNode(__('Refresh')));
-	const exportButton = document.createElement('button');
-	exportButton.hidden = true;
-	exportButton.className = 'btn btn-default btn-sm';
-	exportButton.style.marginBottom = 'auto';
-	exportButton.appendChild(document.createTextNode(__('Export')));
 	h3.title = label;
 	h3.className = 'ellipsis title-text';
 	h3.appendChild(document.createTextNode(label));
 
+	const toolbar = wrapper.appendChild(document.createElement('div'));
+	toolbar.style.display = 'flex';
+	toolbar.style.flexDirection = 'row';
+
+	const buttonGroup = toolbar.appendChild(document.createElement('div'));
+	buttonGroup.hidden = true;
+	const refreshButton = buttonGroup.appendChild(document.createElement('button'));
+	refreshButton.className = 'btn btn-default btn-sm';
+	refreshButton.style.marginBottom = 'auto';
+	refreshButton.appendChild(document.createTextNode(__('Refresh')));
+	const exportButton = buttonGroup.appendChild(document.createElement('button'));
+	exportButton.className = 'btn btn-default btn-sm';
+	exportButton.style.marginBottom = 'auto';
+	exportButton.appendChild(document.createTextNode(__('Export')));
+
+
 	wrapper.style.display = 'flex';
 	wrapper.style.flexDirection = 'column';
 	wrapper.style.height = 'calc(100vh - 60px)';
-	let destroy =noop;
+
+
+	let destroy = noop;
 	let name = '';
 	let k = 0;
 	let f: frappe.ui.form.Control | undefined;
@@ -73,15 +81,22 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 			destroy = () => {};
 			return;
 		}
-		const [dest, exportXLSX] = initShow(wrapper, meta, doc, template);
 
-		refreshButton.hidden = false;
-		exportButton.hidden = false;
+		const filterDiv = toolbar.appendChild(document.createElement('div'));
+		filterDiv.style.flex = '1';
+		toolbar.insertBefore(filterDiv, toolbar.firstChild);
+
+		const body = wrapper.appendChild(document.createElement('div'));
+		body.style.flex = '1';
+
+		const [dest, exportXLSX] = initShow(body, filterDiv, meta, doc, template);
+		buttonGroup.hidden = false;
 		exportButton.addEventListener('click', exportXLSX);
 		destroy = () => {
 			dest();
-			refreshButton.hidden = true;
-			exportButton.hidden = true;
+			filterDiv.remove();
+			body.remove();
+			buttonGroup.hidden = true;
 			exportButton.removeEventListener('click', exportXLSX);
 		};
 	}
@@ -106,8 +121,6 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 
 
 	refreshButton.addEventListener('click', () => update());
-	head.appendChild(refreshButton);
-	head.appendChild(exportButton);
 	const p = location.pathname.split('/').filter(Boolean);
 	if (p[0] === 'app' && p[1] === 'tianjy-statement') {
 		const [,, name] = p;
@@ -115,8 +128,7 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 			update(decodeURIComponent(name));
 		}
 	}
+	f.wrapper.title = label;
+	f.wrapper.style.flex = '';
 	f.refresh();
-	$(f.wrapper).attr('title', label);
-
-
 };

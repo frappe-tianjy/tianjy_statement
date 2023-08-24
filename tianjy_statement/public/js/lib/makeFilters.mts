@@ -1,27 +1,25 @@
 const dateTypes = new Set(['Date', 'Datetime']);
+export function filterFieldtype(fieldtype: string) {
+	if (!frappe.model.is_value_type(fieldtype)) { return false; }
+	if (
+		[
+			'Text', 'Small Text', 'Text Editor',
+			'HTML Editor', 'Code', 'JSON',
+			'Read Only', 'Dynamic Link', 'Button', 'HTML',
+		].includes(fieldtype)
+	) {
+		return false;
+	}
+	return true;
+}
+
 export default function makeFilters(meta, parent, filters, update) {
 	const doctype_fields = meta.fields;
 	parent.classList.add('tianjy_statement_filters');
 	const fields = new Map();
 
 	for (let { options, fieldtype, fieldname, label } of doctype_fields) {
-		if (!frappe.model.is_value_type(fieldtype)) { continue; }
-		if (
-			[
-				'Text',
-				'Small Text',
-				'Text Editor',
-				'HTML Editor',
-				'Code',
-				'JSON',
-				'Read Only',
-				'Dynamic Link',
-				'Button',
-				'HTML',
-			].includes(fieldtype)
-		) {
-			continue;
-		}
+		if (!filterFieldtype(fieldtype)) { continue; }
 		if (fieldtype === 'Phone') {
 			fieldtype = 'Data';
 		} else if (fieldtype === 'Select') {

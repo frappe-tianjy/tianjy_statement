@@ -31,7 +31,7 @@ export default function toSettings(value: Template) {
 		rowHeights: heights || [],
 		fixedRowsTop: freezeRow || 0,
 		fixedColumnsStart: freezeCol || 0,
-		cell: styles?.flatMap((v, row) => v.map((s, col) => ({
+		cell: styles?.flatMap((v, row) => v.map((s, col) => s ? {
 			row, col,
 			bold: s.bold,
 			italic: s.italic,
@@ -39,6 +39,6 @@ export default function toSettings(value: Template) {
 			color: s.color,
 			bgColor: s.bgColor,
 			className: getClassName(s),
-		}))) || [],
+		} : {row, col})) || [],
 	};
 }

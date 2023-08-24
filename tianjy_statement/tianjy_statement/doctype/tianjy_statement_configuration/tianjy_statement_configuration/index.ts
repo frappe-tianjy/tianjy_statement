@@ -8,6 +8,7 @@ import type { Template } from '../../../../public/js/types.mjs';
 import createEditor from '../../../../public/js/lib/createEditor.mjs';
 
 import preview from './preview';
+import setFields from './setFields.mjs';
 
 
 interface Named {
@@ -44,6 +45,7 @@ function updateTemplateEditorNamed(frm: any) {
 }
 frappe.ui.form.on('Tianjy Statement Configuration', {
 	refresh: function (frm) {
+		setFields(frm);
 		if (!frm.is_new()) {
 			const doc = {...frm.doc as any};
 			const doctype: string = doc.doc_type;
@@ -71,6 +73,9 @@ frappe.ui.form.on('Tianjy Statement Configuration', {
 		if (value) {
 			templateEditor.updateSettings(toSettings(value));
 		}
+	},
+	doc_type: function (frm) {
+		setFields(frm);
 	},
 });
 
