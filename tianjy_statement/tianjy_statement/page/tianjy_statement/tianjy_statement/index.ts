@@ -24,6 +24,7 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 	const h3 = head.appendChild(document.createElement('h3'));
 	h3.title = label;
 	h3.className = 'ellipsis title-text';
+	h3.style.margin = '1';
 	h3.appendChild(document.createTextNode(label));
 
 	const toolbar = wrapper.appendChild(document.createElement('div'));
@@ -36,6 +37,7 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 	refreshButton.className = 'btn btn-default btn-sm';
 	refreshButton.style.marginBottom = 'auto';
 	refreshButton.appendChild(document.createTextNode(__('Refresh')));
+	refreshButton.style.marginInlineEnd = '8px';
 	const exportButton = buttonGroup.appendChild(document.createElement('button'));
 	exportButton.className = 'btn btn-default btn-sm';
 	exportButton.style.marginBottom = 'auto';
@@ -129,6 +131,7 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 		}
 	}
 	f.wrapper.title = label;
-	f.wrapper.style.flex = '';
+	f.wrapper.style.flex = '1';
+	f.wrapper.style.marginInline = '8px';
 	f.refresh();
 };

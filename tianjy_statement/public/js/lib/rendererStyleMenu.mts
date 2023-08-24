@@ -55,7 +55,7 @@ export default function rendererStyleMenu(table: Handsontable.Core) {
 	div.appendChild(createBoolStyle('斜体', meta.italic, v => setCells(table, 'italic', v)));
 	div.appendChild(createBoolStyle('下划线', meta.underline, v => setCells(table, 'underline', v)));
 	el.appendChild(createColorStyle('文本颜色', meta.color, v => setCells(table, 'color', v)));
-	el.appendChild(createColorStyle('文本颜色', meta.bgColor, v => setCells(table, 'bgColor', v)));
+	el.appendChild(createColorStyle('背景颜色', meta.bgColor, v => setCells(table, 'bgColor', v)));
 
 	return el;
 }

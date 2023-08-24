@@ -1,7 +1,7 @@
 import Handsontable from 'handsontable';
 import HyperFormula from 'hyperformula';
 
-import { Template } from '../types.mjs';
+import type { Template } from '../types.mjs';
 
 import customStylesRenderer from './customStylesRenderer.mjs';
 import rendererStyleMenu from './rendererStyleMenu.mjs';
@@ -25,6 +25,8 @@ export default function createEditor(
 	namedExpressions: any[] = [],
 	cb?: (template: Template) => void,
 ) {
+	el.style.overscrollBehavior = 'contain';
+	el.style.isolation = 'isolate';
 	const table: Handsontable = new Handsontable(el, {
 		startRows: 8,
 		startCols: 6,

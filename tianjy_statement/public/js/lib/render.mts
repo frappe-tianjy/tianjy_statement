@@ -23,7 +23,7 @@ function replace(
 			if (v && typeof v === 'object') { v = String(v); }
 			if (['number', 'boolean', 'bigint'].includes(typeof v)) { return String(v); }
 			if (typeof v === 'string') { return `"${v.replace(/"/g, '""')}"`; }
-			return 0;
+			return '""';
 		}
 		if (!r) { return _; }
 		const t = /^(\$?[A-Z]+\$?)(\d+)(?::(\$?[A-Z]+\$?)(\d+))?$/i.exec(r);
@@ -147,7 +147,7 @@ export default function render(
 		styles: repeat(rows, styles || [], start, end),
 		merged: merged.flatMap(m => {
 			const s = m.row;
-			const e = m.row + m.rowspan;
+			const e = m.row + m.rowspan - 1;
 			if (s >= start && e <= end) {
 				return rows.map((_, index) => ({ ...m, row: m.row + length * index }));
 			}
