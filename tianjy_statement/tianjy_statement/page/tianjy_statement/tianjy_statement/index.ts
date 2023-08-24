@@ -56,13 +56,9 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 	let destroy = noop;
 	let name = '';
 	let k = 0;
-	let f: frappe.ui.form.Control | undefined;
 	async function update(newName?: string) {
 		if (newName) { name = newName; }
 		if (!name) { return; }
-		if (f && f.get_value() !== newName) {
-			f.set_value(newName);
-		}
 		const p = location.pathname.split('/').filter(Boolean);
 		if (p[0] === 'app' && p[1] === 'tianjy-statement') {
 			history.replaceState({}, '', `/app/tianjy-statement/${encodeURIComponent(name)}`);
@@ -108,24 +104,6 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 		};
 	}
 
-	f = frappe.ui.form.make_control({
-		df: {
-			options: doctype,
-			fieldtype: 'Link',
-			label,
-			onchange() {
-				if (!f) { return; }
-				const value = f.get_value();
-				if (!value || name === value) { return; }
-				update(value);
-			},
-			is_filter: 1,
-			placeholder: label,
-			condition: '=',
-			input_class: 'input-xs',
-		}, parent: $(head), only_input: true,
-	});
-
 
 	refreshButton.addEventListener('click', () => update());
 	const p = location.pathname.split('/').filter(Boolean);
@@ -135,8 +113,4 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 			update(decodeURIComponent(name));
 		}
 	}
-	f.wrapper.title = label;
-	f.wrapper.style.flex = '1';
-	f.wrapper.style.marginInline = '8px';
-	f.refresh();
 };
