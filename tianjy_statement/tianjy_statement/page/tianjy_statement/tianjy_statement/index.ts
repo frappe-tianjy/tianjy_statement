@@ -28,7 +28,7 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 	h3.title = label;
 	h3.className = 'ellipsis title-text';
 	h3.style.margin = '0';
-	h3.appendChild(document.createTextNode(label));
+	const title = h3.appendChild(document.createTextNode(label));
 
 	const toolbar = wrapper.appendChild(document.createElement('div'));
 	toolbar.style.display = 'flex';
@@ -67,6 +67,8 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 		let kk = k;
 		const doc: any = await get_template(name);
 		if (kk !== k) { return; }
+		title.textContent = doc.label || doc.name || label;
+
 		const dt = doc.doc_type;
 		if (!dt) {
 			destroy();
