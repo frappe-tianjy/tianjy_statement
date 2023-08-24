@@ -57,6 +57,9 @@ frappe.ui.form.on('Tianjy Statement Configuration', {
 				frm.add_custom_button('Preview', () => {
 					preview(name, doctype, template, dataArea, quickFilters);
 				});
+				frm.add_custom_button(`<a href="/app/tianjy-statement/${doc.name}">${__('查看')}</a>`, () => {
+
+				});
 			}
 
 		}
