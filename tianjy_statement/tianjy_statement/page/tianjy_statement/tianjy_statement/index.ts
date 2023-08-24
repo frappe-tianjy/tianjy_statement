@@ -19,28 +19,32 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 	const label= __('Tianjy Statement');
 
 	const head = wrapper.appendChild(document.createElement('div'));
-	head.style.padding = '8px 0';
-	head.className = 'flex title-area';
+	head.style.padding = '8px';
+	head.style.height = '75px';
+	head.style.display = 'flex';
+	head.style.alignItems = 'center';
+	head.className = 'title-area';
 	const h3 = head.appendChild(document.createElement('h3'));
 	h3.title = label;
 	h3.className = 'ellipsis title-text';
-	h3.style.margin = '1';
+	h3.style.margin = '0';
 	h3.appendChild(document.createTextNode(label));
 
 	const toolbar = wrapper.appendChild(document.createElement('div'));
 	toolbar.style.display = 'flex';
 	toolbar.style.flexDirection = 'row';
+	toolbar.style.background = '#FFF';
+	toolbar.style.padding = '8px';
 
 	const buttonGroup = toolbar.appendChild(document.createElement('div'));
 	buttonGroup.hidden = true;
 	const refreshButton = buttonGroup.appendChild(document.createElement('button'));
 	refreshButton.className = 'btn btn-default btn-sm';
-	refreshButton.style.marginBottom = 'auto';
 	refreshButton.appendChild(document.createTextNode(__('Refresh')));
 	refreshButton.style.marginInlineEnd = '8px';
 	const exportButton = buttonGroup.appendChild(document.createElement('button'));
 	exportButton.className = 'btn btn-default btn-sm';
-	exportButton.style.marginBottom = 'auto';
+	exportButton.style.marginInlineEnd = '8px';
 	exportButton.appendChild(document.createTextNode(__('Export')));
 
 
@@ -89,6 +93,7 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 		toolbar.insertBefore(filterDiv, toolbar.firstChild);
 
 		const body = wrapper.appendChild(document.createElement('div'));
+		body.style.background = '#FFF';
 		body.style.flex = '1';
 
 		const [dest, exportXLSX] = initShow(body, filterDiv, meta, doc, template);
