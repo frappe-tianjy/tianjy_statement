@@ -95,8 +95,10 @@ def get_ctx(meta, ctx):
 			return dict(start=start, end=end, _text=get_date_range_text(start, end))
 		doctype = linkOptions.get(k, None)
 		if not doctype: return value
-		title = frappe.db.get_value(doctype, value, cache=True)
+		meta = frappe.get_meta(doctype)
+		fieldname = meta.title_field or 'name' # type: ignore
+		title = frappe.db.get_value(doctype, value, fieldname, cache=True)
 		if title: return _(title)
-		return  value
+		return _(value)
 
 	return { k: get(v, k) for k,v in ctx.items() }
