@@ -63,7 +63,7 @@ frappe.ui.form.on('Tianjy Statement Configuration', {
 				});
 			}
 		}
-		(frm as any).__templateEditorDestroy();
+		(frm as any).__templateEditorDestroy?.();
 		// @ts-ignore
 		const root: HTMLElement = frm.fields_dict.template_editor.wrapper;
 		const el = root.appendChild(document.createElement('div'));
