@@ -2,6 +2,7 @@
 // For license information, please see license.txt
 
 import HyperFormula from 'hyperformula';
+import type Handsontable from 'handsontable';
 
 import toSettings from '../../../../public/js/lib/toSettings.mjs';
 import type { Template } from '../../../../public/js/types.mjs';
@@ -61,16 +62,14 @@ frappe.ui.form.on('Tianjy Statement Configuration', {
 
 				});
 			}
-
 		}
-		let templateEditor = (frm as any).__templateEditor;
-		if (!templateEditor) {
-			// @ts-ignore
-			const root: HTMLElement = frm.fields_dict.template_editor.wrapper;
-			const el = root.appendChild(document.createElement('div'));
-			templateEditor = createTable(el, l => frm.set_value('template', JSON.stringify(l)));
-			(frm as any).__templateEditor = templateEditor;
-		}
+		let templateEditor: Handsontable | undefined = (frm as any).__templateEditor;
+		if (templateEditor) { templateEditor.destroy(); }
+		// @ts-ignore
+		const root: HTMLElement = frm.fields_dict.template_editor.wrapper;
+		const el = root.appendChild(document.createElement('div'));
+		templateEditor = createTable(el, l => frm.set_value('template', JSON.stringify(l)));
+		(frm as any).__templateEditor = templateEditor;
 		updateTemplateEditorNamed(frm);
 		const value = JSON.parse((frm.doc as any).template || 'null');
 		if (value) {
