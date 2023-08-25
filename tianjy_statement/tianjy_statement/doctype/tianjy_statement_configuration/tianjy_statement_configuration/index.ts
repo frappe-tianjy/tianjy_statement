@@ -63,13 +63,20 @@ frappe.ui.form.on('Tianjy Statement Configuration', {
 				});
 			}
 		}
-		let templateEditor: Handsontable | undefined = (frm as any).__templateEditor;
-		if (templateEditor) { templateEditor.destroy(); }
+		(frm as any).__templateEditorDestroy();
 		// @ts-ignore
 		const root: HTMLElement = frm.fields_dict.template_editor.wrapper;
 		const el = root.appendChild(document.createElement('div'));
-		templateEditor = createTable(el, l => frm.set_value('template', JSON.stringify(l)));
+		const templateEditor = createTable(el, l => frm.set_value('template', JSON.stringify(l)));
 		(frm as any).__templateEditor = templateEditor;
+		(frm as any).__templateEditorDestroy = () => {
+			delete (frm as any).__templateEditorDestroy;
+			templateEditor.destroy();
+			el.remove();
+			if ((frm as any).__templateEditor === templateEditor) {
+				delete (frm as any).__templateEditor;
+			}
+		};
 		updateTemplateEditorNamed(frm);
 		const value = JSON.parse((frm.doc as any).template || 'null');
 		if (value) {
