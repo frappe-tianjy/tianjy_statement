@@ -14,6 +14,19 @@ function get_template(name: string) {
 		}).fail(reject);
 	});
 }
+
+
+function getNewName() {
+	const [r, p, name] = location.pathname.split('/').filter(Boolean);
+	if (r !== 'app' || p !== 'tianjy-statement' || !name) { return; }
+	return decodeURIComponent(name);
+}
+function setPath(name: string) {
+	const [r, p] = location.pathname.split('/').filter(Boolean);
+	if (r !== 'app' || p !== 'tianjy-statement') { return; }
+	history.replaceState({}, '', `/app/tianjy-statement/${encodeURIComponent(name)}`);
+}
+
 const noop = () => {};
 frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 	const label= __('Tianjy Statement');
@@ -56,13 +69,12 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 	let destroy = noop;
 	let name = '';
 	let k = 0;
-	async function update(newName?: string) {
+	async function update(force?: boolean) {
+		const newName = getNewName();
+		if (!force && (!newName || name === newName)) { return; }
 		if (newName) { name = newName; }
 		if (!name) { return; }
-		const p = location.pathname.split('/').filter(Boolean);
-		if (p[0] === 'app' && p[1] === 'tianjy-statement') {
-			history.replaceState({}, '', `/app/tianjy-statement/${encodeURIComponent(name)}`);
-		}
+		setPath(name);
 		k++;
 		let kk = k;
 		const doc: any = await get_template(name);
@@ -107,12 +119,8 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 	}
 
 
-	refreshButton.addEventListener('click', () => update());
-	const p = location.pathname.split('/').filter(Boolean);
-	if (p[0] === 'app' && p[1] === 'tianjy-statement') {
-		const [,, name] = p;
-		if (name) {
-			update(decodeURIComponent(name));
-		}
-	}
+	refreshButton.addEventListener('click', () => update(true));
+	$(wrapper).on('show', () => update(false));
+	update(true);
+
 };
