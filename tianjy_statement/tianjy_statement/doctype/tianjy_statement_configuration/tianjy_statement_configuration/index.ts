@@ -1,12 +1,8 @@
 // Copyright (c) 2023, 天玑 Tianjy and contributors
 // For license information, please see license.txt
 
-import HyperFormula from 'hyperformula';
-import type Handsontable from 'handsontable';
-
-import toSettings from '../../../../public/js/lib/toSettings.mjs';
-import type { Template } from '../../../../public/js/types.mjs';
-import createEditor from '../../../../public/js/lib/createEditor.mjs';
+import type { Template, XLSXEditor } from '../../../../public/js/types.mjs';
+import create from '../../../../public/js/lib/create.mjs';
 
 import preview from './preview';
 import setFields from './setFields.mjs';
@@ -23,26 +19,14 @@ function getNamed(named: Named[]) {
 	return v;
 }
 
-function createTable(root: HTMLElement, update: (v: Template) => void) {
-	return createEditor(root, '600px', [], update);
-
-}
 
 function updateTemplateEditorNamed(frm: any) {
-	const templateEditor = (frm as any).__templateEditor;
+	const templateEditor: XLSXEditor = (frm as any).__templateEditor;
 	if (!templateEditor) { return; }
-	const formulas = templateEditor.getPlugin('formulas');
-	formulas.disablePlugin();
-	templateEditor.updateSettings({
-		formulas: {
-			engine: HyperFormula, namedExpressions: getNamed([
-				...(frm.doc as any).fields || [],
-				...(frm.doc as any).quick_filters || [],
-			]),
-		},
-	});
-	formulas.enablePlugin();
-
+	templateEditor.namedExpressions = getNamed([
+		...(frm.doc as any).fields || [],
+		...(frm.doc as any).quick_filters || [],
+	]);
 }
 frappe.ui.form.on('Tianjy Statement Configuration', {
 	refresh: function (frm) {
@@ -58,7 +42,8 @@ frappe.ui.form.on('Tianjy Statement Configuration', {
 				frm.add_custom_button('Preview', () => {
 					preview(name, doctype, template, dataArea, quickFilters);
 				});
-				frm.add_custom_button(`<a href="/app/tianjy-statement/${doc.name}">${__('查看')}</a>`, () => {
+				const url = `/app/tianjy-statement/${doc.name}`;
+				frm.add_custom_button(`<a href="${url}">${__('查看')}</a>`, () => {
 
 				});
 			}
@@ -67,7 +52,13 @@ frappe.ui.form.on('Tianjy Statement Configuration', {
 		// @ts-ignore
 		const root: HTMLElement = frm.fields_dict.template_editor.wrapper;
 		const el = root.appendChild(document.createElement('div'));
-		const templateEditor = createTable(el, l => frm.set_value('template', JSON.stringify(l)));
+		const doc = {...frm.doc as any};
+		const templateEditor = create(
+			el,
+			'600px',
+			getNamed([ ...doc.fields || [], ...doc.quick_filters || [] ]),
+			l => frm.set_value('template', JSON.stringify(l)),
+		);
 		(frm as any).__templateEditor = templateEditor;
 		(frm as any).__templateEditorDestroy = () => {
 			delete (frm as any).__templateEditorDestroy;
@@ -77,11 +68,8 @@ frappe.ui.form.on('Tianjy Statement Configuration', {
 				delete (frm as any).__templateEditor;
 			}
 		};
-		updateTemplateEditorNamed(frm);
-		const value = JSON.parse((frm.doc as any).template || 'null');
-		if (value) {
-			templateEditor.updateSettings(toSettings(value));
-		}
+		const value = JSON.parse(doc.template || 'null');
+		if (value) { templateEditor.value = value; }
 	},
 	doc_type: function (frm) {
 		setFields(frm);

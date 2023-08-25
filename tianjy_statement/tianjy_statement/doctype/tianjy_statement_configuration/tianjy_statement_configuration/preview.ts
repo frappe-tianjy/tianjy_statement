@@ -1,7 +1,6 @@
-import { Template } from '../../../../public/js/types.mjs';
+import type { Template } from '../../../../public/js/types.mjs';
 import render from '../../../../public/js/lib/render.mjs';
-import toSettings from '../../../../public/js/lib/toSettings.mjs';
-import createEditor from '../../../../public/js/lib/createEditor.mjs';
+import create from '../../../../public/js/lib/create.mjs';
 import make_standard_filters from '../../../../public/js/lib/makeFilters.mjs';
 
 
@@ -48,7 +47,7 @@ export default async function preview(
 
 
 	await transitionend;
-	const handsontable = createEditor((dialog as any).fields_dict.show.wrapper, '600px');
+	const editor = create((dialog as any).fields_dict.show.wrapper, '600px');
 	let k = 0;
 	let destroyed = false;
 	const update = async (data: any) => {
@@ -57,12 +56,11 @@ export default async function preview(
 		const v = k;
 		const {list, ctx} = await get_data(name, data);
 		if (destroyed || v !== k) { return; }
-		handsontable.updateSettings(toSettings(render(template, dataArea, ctx, list)));
-
+		editor.value = render(template, dataArea, ctx, list);
 	};
 	make_standard_filters(meta, (dialog as any).fields_dict.filters.wrapper, ctx, update);
 	update({});
 	await hidden;
-	handsontable.destroy();
+	editor.destroy();
 	destroyed = true;
 }

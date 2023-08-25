@@ -116,16 +116,20 @@ function get(value: any, keys: string) {
 	return v;
 
 }
+
 export default function render(
 	{ data, merged, heights, styles, ...layout }: Template,
 	dataArea: [number?, number?],
 	ctx: any,
 	rows: any[],
+	minRow = 0,
 ): Template {
 	const start = ((dataArea[0] || 1) - 1) <= 0 ? 0 : (dataArea[0] || 1) - 1;
 	const end = (dataArea[1] || 1) - 1 <= start ? start : (dataArea[1] || 1) - 1;
 	const length = end - start + 1;
-	const n = rows.length;
+	const addLength = Math.max(0, Math.floor(minRow) || 0) - rows.length;
+	const allData = addLength <= 0 ? rows : [...rows, ...Array(addLength).fill({})];
+	const n = allData.length;
 	function replaceData(value: string) {
 		return replace(
 			value,
@@ -143,24 +147,24 @@ export default function render(
 	const dataRows = data.slice(start, end + 1);
 	return {
 		...layout,
-		heights: repeat(rows, heights || [], start, end),
-		styles: repeat(rows, styles || [], start, end),
+		heights: repeat(allData, heights || [], start, end),
+		styles: repeat(allData, styles || [], start, end),
 		merged: merged.flatMap(m => {
 			const s = m.row;
 			const e = m.row + m.rowspan - 1;
 			if (s >= start && e <= end) {
-				return rows.map((_, index) => ({ ...m, row: m.row + length * index }));
+				return allData.map((_, index) => ({ ...m, row: m.row + length * index }));
 			}
 			if (s <= start && e >= end) {
-				return { ...m, rowspan: m.rowspan + length * (rows.length - 1) };
+				return { ...m, rowspan: m.rowspan + length * (allData.length - 1) };
 			}
 			if (s < end) { return m; }
-			return { ...m, row: m.row + length * (rows.length - 1) };
+			return { ...m, row: m.row + length * (allData.length - 1) };
 
 		}),
 		data: [
 			...data.slice(0, start).map(l => l.map(v => replaceData(v))),
-			...rows.flatMap((r, k) => dataRows.map(l => l.map(v => replaceRowData(v, r, k)))),
+			...allData.flatMap((r, k) => dataRows.map(l => l.map(v => replaceRowData(v, r, k)))),
 			...data.slice(end + 1).map(l => l.map(v => replaceData(v))),
 		],
 	};

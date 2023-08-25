@@ -15,11 +15,9 @@
 </template>
 <script lang="ts" setup>
 import { computed, shallowRef, watch, ref } from 'vue';
-import Handsontable from 'handsontable';
 import { ElFormItem, ElInputNumber } from 'element-plus';
 
-import toSettings from '../lib/toSettings.mjs';
-import createEditor from '../lib/createEditor.mjs';
+import create from '../lib/create.mjs';
 
 const root = shallowRef<HTMLElement>();
 
@@ -71,27 +69,19 @@ function getNamed(named: Named[]) {
 	const v = named.map(v => ({ name: `${v.type || 'ctx'}.${v.field}`, expression: v.text }));
 	return v;
 }
-let hat: Handsontable | undefined;
-
-
-watch(root, async () => {
-	if (hat) {
-		hat.destroy();
-		hat = undefined;
-	}
+watch(() => {
 	const el = root.value;
 	if (!el) { return; }
-	const table = createEditor(el, '100%', getNamed([...cfg.value.fields || []]), v => {
+	const editor = create(el, '100%', getNamed([...cfg.value.fields || []]), v => {
 		template.value = { ...template.value, ...v };
 	});
 	const { value } = template;
 	if (value) {
-		table.updateSettings(toSettings(value));
+		editor.value = value;
 	}
-	hat = table;
-});
+	return editor;
+}, (_, editor) => { editor?.destroy(); });
 
-const tt = __;
 
 </script>
 

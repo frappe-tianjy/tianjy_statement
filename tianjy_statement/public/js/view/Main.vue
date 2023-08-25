@@ -4,27 +4,11 @@
 </template>
 <script setup lang="ts">
 import { computed, ref, shallowRef, watch } from 'vue';
-import Handsontable from 'handsontable';
 
-import toSettings from '../lib/toSettings.mjs';
 import render from '../lib/render.mjs';
 import type { Configuration } from '../types.mjs';
-import createEditor from '../lib/createEditor.mjs';
+import create from '../lib/create.mjs';
 
-
-const root = shallowRef<HTMLElement>();
-let hat: Handsontable | undefined;
-const handsontable = computed(() => {
-	if (hat) {
-		hat.destroy();
-		hat = undefined;
-	}
-	const el = root.value;
-	if (!el) { return; }
-	const table = createEditor(el, '100%');
-	hat = table;
-	return table;
-});
 const props = defineProps<{
 	meta: locals.DocType;
 	options: Record<string, any>;
@@ -63,11 +47,21 @@ const emit = defineEmits<{
 
 }>();
 
+
+const root = shallowRef<HTMLElement>();
+const handsontable = computed(() => {
+	const el = root.value;
+	if (!el) { return; }
+	const table = create(el, '100%');
+	return table;
+});
+watch(handsontable, (_, editor) => { editor?.destroy(); });
+
 watch([handsontable, () => props.configuration, () => props.data], ([
-	t, { template, startRow, endRow }, d,
+	editor, { template, startRow, endRow }, d,
 ]) => {
-	if (!t || !template) { return; }
-	t.updateSettings(toSettings(render(template, [startRow, endRow], {}, d)));
+	if (!editor || !template) { return; }
+	editor.value = render(template, [startRow, endRow], {}, d);
 });
 
 </script>

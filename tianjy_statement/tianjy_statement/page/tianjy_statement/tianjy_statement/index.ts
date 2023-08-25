@@ -1,7 +1,11 @@
 // Copyright (c) 2023, 天玑 Tianjy and contributors
 // For license information, please see license.txt
 
-import initShow from './initShow';
+import render from '../../../../public/js/lib/render.mjs';
+import create from '../../../../public/js/lib/create.mjs';
+import exportXLSX from '../../../../public/js/lib/exportXLSX.mjs';
+import make_standard_filters from '../../../../public/js/lib/makeFilters.mjs';
+
 const doctype = 'Tianjy Statement Configuration';
 
 function get_template(name: string) {
@@ -11,6 +15,16 @@ function get_template(name: string) {
 			type: 'GET',
 			args: { doctype, name },
 			callback: r => { resolve(r.message); },
+		}).fail(reject);
+	});
+}
+
+async function getData(name: string, ctx: Record<string, any>) {
+	return new Promise<any>((resolve, reject) => {
+		frappe.call({
+			method: 'tianjy_statement.statement.get_data',
+			args: { name, ctx },
+			callback(r) { resolve(r?.message || {list: [], ctx}); },
 		}).fail(reject);
 	});
 }
@@ -69,7 +83,7 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 	let destroy = noop;
 	let name = '';
 	let k = 0;
-	async function update(force?: boolean) {
+	async function query(force?: boolean) {
 		const newName = getNewName();
 		if (!force && (!newName || name === newName)) { return; }
 		if (newName) { name = newName; }
@@ -106,21 +120,41 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 		body.style.background = '#FFF';
 		body.style.flex = '1';
 
-		const [dest, exportXLSX] = initShow(body, filterDiv, meta, doc, template);
+		const dataArea: [number, number] = [doc.start_row, doc.end_row];
+		const ctx = doc.quick_filters || [];
+		const docname = doc.name;
+		const editor = create(body, '100%');
+		let destroyed = false;
+		let k2 = 0;
+		const update = async (data: any) => {
+			if (destroyed) { return; }
+			k2++;
+			const v = k2;
+			const {list, ctx} = await getData(docname, data);
+			if (destroyed || v !== k2) { return; }
+			editor.value = render(template, dataArea, ctx, list);
+		};
+		make_standard_filters(meta, filterDiv, ctx, update);
+		update({});
+		function exportXlsx() {
+			exportXLSX(editor.readValue(true));
+		}
 		buttonGroup.hidden = false;
-		exportButton.addEventListener('click', exportXLSX);
+		exportButton.addEventListener('click', exportXlsx);
 		destroy = () => {
-			dest();
+			if (destroyed) { return; }
+			destroyed = true;
+			editor.destroy();
 			filterDiv.remove();
 			body.remove();
 			buttonGroup.hidden = true;
-			exportButton.removeEventListener('click', exportXLSX);
+			exportButton.removeEventListener('click', exportXlsx);
 		};
 	}
 
 
-	refreshButton.addEventListener('click', () => update(true));
-	$(wrapper).on('show', () => update(false));
-	update(true);
+	refreshButton.addEventListener('click', () => query(true));
+	$(wrapper).on('show', () => query(false));
+	query(true);
 
 };
