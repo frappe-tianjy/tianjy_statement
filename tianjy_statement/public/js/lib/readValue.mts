@@ -7,7 +7,8 @@ function getStyles(hot: Handsontable) {
 
 	const styles: TemplateStyle[][] = [];
 	for (const meta of hot.getCellsMeta()) {
-		const { row, col, bold, color, bgColor, italic, underline, className } = meta;
+		if (!meta) { continue; }
+		const { row, col, bold, color, bgColor, italic, underline, className, fontSize } = meta;
 		while (styles.length <= row) { styles.push([]); }
 		const style: TemplateStyle = {};
 		if (bold) { style.bold = 1; }
@@ -15,6 +16,7 @@ function getStyles(hot: Handsontable) {
 		if (underline) { style.underline = 1; }
 		if (color) { style.color = color; }
 		if (bgColor) { style.bgColor = bgColor; }
+		if (fontSize) { style.fontSize = fontSize; }
 		const cname = (Array.isArray(className) ? className.join(' ') : className || '').split(' ');
 		if (cname.includes('htLeft')) {
 			style.left = 1;

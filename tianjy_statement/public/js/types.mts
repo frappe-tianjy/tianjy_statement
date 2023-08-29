@@ -15,6 +15,8 @@ export interface TemplateStyle {
 	color?: string;
 	bgColor?: string;
 
+	fontSize?: number;
+
 
 	left?: 1;
 	center?: 1;

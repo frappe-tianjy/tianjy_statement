@@ -10,10 +10,11 @@ export default function customStylesRenderer(
 	cellProperties: Handsontable.CellProperties,
 ) {
 	Handsontable.renderers.TextRenderer(hotInstance, TD, row, col, prop, value, cellProperties);
-	const { bold, italic, underline, color, bgColor } = cellProperties;
+	const { bold, italic, underline, color, bgColor, fontSize } = cellProperties;
 	if (bold) { TD.style.fontWeight = 'bold'; }
 	if (italic) { TD.style.fontStyle = 'italic'; }
 	if (underline) { TD.style.textDecoration = 'underline'; }
 	if (color) { TD.style.color = color; }
 	if (bgColor) { TD.style.backgroundColor = bgColor; }
+	if (fontSize) { TD.style.fontSize = fontSize; }
 }
