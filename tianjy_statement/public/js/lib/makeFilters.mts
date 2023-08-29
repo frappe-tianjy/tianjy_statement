@@ -13,6 +13,18 @@ export function filterFieldtype(fieldtype: string) {
 	return true;
 }
 
+export function getFilterValues(fields_dict: Record<string, frappe.ui.form.Control>) {
+	/** @type {Record<string, any>} */
+	const filters: Record<string, any> = {};
+	for (const [key, field] of Object.entries(fields_dict)) {
+		let value = field.get_value();
+		if (!value) { continue; }
+		filters[key] = value;
+	}
+	return filters
+
+}
+
 export default function makeFilters(meta, parent, filters, update) {
 	const doctype_fields = meta.fields;
 	parent.classList.add('tianjy_statement_filters');
@@ -39,16 +51,17 @@ export default function makeFilters(meta, parent, filters, update) {
 	}
 
 
-	/** @type {Record<string, any>} */
-	const fields_dict = {};
+	/** @type {Record<string, frappe.ui.form.Control>} */
+	const fields_dict: Record<string, any> = {};
 	const onchange = () => {
-		const filters = {};
+		/** @type {Record<string, any>} */
+		const filters: Record<string, any> = {};
 		for (const [key, field] of Object.entries(fields_dict)) {
 			let value = field.get_value();
 			if (!value) { continue; }
 			filters[key] = value;
 		}
-		update(filters);
+		update(getFilterValues(fields_dict));
 	};
 
 	for (const { field } of filters) {
@@ -65,6 +78,13 @@ export default function makeFilters(meta, parent, filters, update) {
 				input_class: 'input-xs',
 			}, parent, only_input: fieldtype === 'Check' ? false : true,
 		});
+		if (fieldtype === 'DateRange') {
+			const wrapper = f.wrapper as any;
+			wrapper.addEventListener('change', () => {
+				if (wrapper.value) { return } 
+				onchange();
+			})
+		}
 		f.refresh();
 		fields_dict[field] = f;
 		$(f.wrapper).addClass('col-md-2').attr('title', label)

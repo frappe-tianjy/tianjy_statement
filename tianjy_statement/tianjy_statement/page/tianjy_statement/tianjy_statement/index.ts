@@ -4,7 +4,7 @@
 import render from '../../../../public/js/lib/render.mjs';
 import create from '../../../../public/js/lib/create.mjs';
 import exportXLSX from '../../../../public/js/lib/exportXLSX.mjs';
-import make_standard_filters from '../../../../public/js/lib/makeFilters.mjs';
+import make_standard_filters, { getFilterValues } from '../../../../public/js/lib/makeFilters.mjs';
 
 const doctype = 'Tianjy Statement Configuration';
 
@@ -57,22 +57,7 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 	h3.style.margin = '0';
 	const title = h3.appendChild(document.createTextNode(label));
 
-	const toolbar = wrapper.appendChild(document.createElement('div'));
-	toolbar.style.display = 'flex';
-	toolbar.style.flexDirection = 'row';
-	toolbar.style.background = '#FFF';
-	toolbar.style.padding = '8px';
 
-	const buttonGroup = toolbar.appendChild(document.createElement('div'));
-	buttonGroup.hidden = true;
-	const refreshButton = buttonGroup.appendChild(document.createElement('button'));
-	refreshButton.className = 'btn btn-default btn-sm';
-	refreshButton.appendChild(document.createTextNode(__('Refresh')));
-	refreshButton.style.marginInlineEnd = '8px';
-	const exportButton = buttonGroup.appendChild(document.createElement('button'));
-	exportButton.className = 'btn btn-default btn-sm';
-	exportButton.style.marginInlineEnd = '8px';
-	exportButton.appendChild(document.createTextNode(__('Export')));
 
 
 	wrapper.style.display = 'flex';
@@ -83,7 +68,7 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 	let destroy = noop;
 	let name = '';
 	let k = 0;
-	async function query(force?: boolean) {
+	async function show(force?: boolean) {
 		const newName = getNewName();
 		if (!force && (!newName || name === newName)) { return; }
 		if (newName) { name = newName; }
@@ -112,9 +97,21 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 			return;
 		}
 
+		const toolbar = wrapper.appendChild(document.createElement('div'));
+		toolbar.style.display = 'flex';
+		toolbar.style.flexDirection = 'row';
+		toolbar.style.background = '#FFF';
+		toolbar.style.padding = '8px';
 		const filterDiv = toolbar.appendChild(document.createElement('div'));
 		filterDiv.style.flex = '1';
-		toolbar.insertBefore(filterDiv, toolbar.firstChild);
+		const refreshButton = toolbar.appendChild(document.createElement('button'));
+		refreshButton.className = 'btn btn-default btn-sm';
+		refreshButton.appendChild(document.createTextNode(__('Refresh')));
+		refreshButton.style.marginInlineEnd = '8px';
+		const exportButton = toolbar.appendChild(document.createElement('button'));
+		exportButton.className = 'btn btn-default btn-sm';
+		exportButton.style.marginInlineEnd = '8px';
+		exportButton.appendChild(document.createTextNode(__('Export')));
 
 		const body = wrapper.appendChild(document.createElement('div'));
 		body.style.background = '#FFF';
@@ -134,27 +131,21 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 			if (destroyed || v !== k2) { return; }
 			editor.value = render(template, dataArea, ctx, list);
 		};
-		make_standard_filters(meta, filterDiv, ctx, update);
+		const fields_dict = make_standard_filters(meta, filterDiv, ctx, update);
 		update({});
-		function exportXlsx() {
-			exportXLSX(editor.readValue(true));
-		}
-		buttonGroup.hidden = false;
-		exportButton.addEventListener('click', exportXlsx);
+		exportButton.addEventListener('click', () => exportXLSX(editor.readValue(true)));
+		refreshButton.addEventListener('click', () => update(getFilterValues(fields_dict)));
 		destroy = () => {
 			if (destroyed) { return; }
 			destroyed = true;
 			editor.destroy();
-			filterDiv.remove();
 			body.remove();
-			buttonGroup.hidden = true;
-			exportButton.removeEventListener('click', exportXlsx);
+			toolbar.remove();
 		};
 	}
 
 
-	refreshButton.addEventListener('click', () => query(true));
-	$(wrapper).on('show', () => query(false));
-	query(true);
+	$(wrapper).on('show', () => show(false));
+	show(true);
 
 };
