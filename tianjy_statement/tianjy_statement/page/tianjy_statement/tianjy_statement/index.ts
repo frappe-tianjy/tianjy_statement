@@ -40,6 +40,15 @@ function setPath(name: string) {
 	if (r !== 'app' || p !== 'tianjy-statement') { return; }
 	history.replaceState({}, '', `/app/tianjy-statement/${encodeURIComponent(name)}`);
 }
+function createButton(title: string, click: () => void) {
+	const button = document.createElement('button');
+	button.className = 'btn btn-default btn-sm';
+	button.appendChild(document.createTextNode(__(title)));
+	button.style.marginInlineEnd = '8px';
+	button.style.marginBlockEnd = 'auto';
+	button.addEventListener('click', click);
+	return button;
+}
 
 const noop = () => {};
 frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
@@ -56,8 +65,6 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 	h3.className = 'ellipsis title-text';
 	h3.style.margin = '0';
 	const title = h3.appendChild(document.createTextNode(label));
-
-
 
 
 	wrapper.style.display = 'flex';
@@ -104,15 +111,6 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 		toolbar.style.padding = '8px';
 		const filterDiv = toolbar.appendChild(document.createElement('div'));
 		filterDiv.style.flex = '1';
-		const refreshButton = toolbar.appendChild(document.createElement('button'));
-		refreshButton.className = 'btn btn-default btn-sm';
-		refreshButton.appendChild(document.createTextNode(__('Refresh')));
-		refreshButton.style.marginInlineEnd = '8px';
-		const exportButton = toolbar.appendChild(document.createElement('button'));
-		exportButton.className = 'btn btn-default btn-sm';
-		exportButton.style.marginInlineEnd = '8px';
-		exportButton.appendChild(document.createTextNode(__('Export')));
-
 		const body = wrapper.appendChild(document.createElement('div'));
 		body.style.background = '#FFF';
 		body.style.flex = '1';
@@ -133,8 +131,8 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 		};
 		const fields_dict = make_standard_filters(meta, filterDiv, ctx, update);
 		update({});
-		exportButton.addEventListener('click', () => exportXLSX(editor.readValue(true)));
-		refreshButton.addEventListener('click', () => update(getFilterValues(fields_dict)));
+		toolbar.appendChild(createButton('Refresh', () => update(getFilterValues(fields_dict))));
+		toolbar.appendChild(createButton('Export', () => exportXLSX(editor.readValue(true))));
 		destroy = () => {
 			if (destroyed) { return; }
 			destroyed = true;
