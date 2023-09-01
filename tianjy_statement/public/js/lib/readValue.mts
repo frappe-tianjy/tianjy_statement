@@ -17,7 +17,7 @@ function getStyles(hot: Handsontable, width: number, height: number) {
 		try {
 			const {
 				row, col, bold, color, bgColor, italic, underline, className, fontSize,
-			} = hot.getCellMeta(x, y);
+			} = hot.getCellMeta(y, x);
 			while (styles.length <= row) { styles.push([]); }
 			const style: TemplateStyle = {};
 			if (bold) { style.bold = 1; }
