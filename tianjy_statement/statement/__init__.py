@@ -1,5 +1,6 @@
 import json
 import frappe
+import frappe.permissions
 import frappe.model.utils
 
 from .doctype import get_data_by_doctype
@@ -12,7 +13,7 @@ def get_list():
 @frappe.whitelist()
 def get_template(name: str):
 	doc = frappe.get_doc(TianjyStatementConfiguration.DOCTYPE, name)
-	if doc.has_permission():
+	if frappe.permissions.has_permission(doc.doctype, "read", doc, raise_exception=False):
 		return doc
 
 	if set(frappe.get_roles()) & set(p.role for p in doc.get('permissions') or []):
