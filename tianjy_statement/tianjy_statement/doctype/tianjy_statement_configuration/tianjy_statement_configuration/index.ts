@@ -57,7 +57,13 @@ frappe.ui.form.on('Tianjy Statement Configuration', {
 			el,
 			'600px',
 			getNamed([ ...doc.fields || [], ...doc.quick_filters || [] ]),
-			l => frm.set_value('template', JSON.stringify(l)),
+			e => {
+				const l = e.value;
+				if (!l) { return; }
+				const template =JSON.stringify(l);
+				if (template === (frm.doc as any).template) { return; }
+				frm.set_value('template', template);
+			},
 		);
 		(frm as any).__templateEditor = templateEditor;
 		(frm as any).__templateEditorDestroy = () => {
