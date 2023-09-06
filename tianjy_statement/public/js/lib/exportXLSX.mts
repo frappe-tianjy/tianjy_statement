@@ -1,8 +1,17 @@
 import * as XLSX from 'xlsx-js-style';
 
-import { Template, TemplateStyle } from '../types.mjs';
+import type { BorderOptions, Template, TemplateStyle } from '../types.mjs';
 interface COLOR_SPEC {
 	rgb: string;
+}
+interface XLSXBorder {
+	style: 'thin' | 'medium' | 'thick'
+	// 下面的类型目前暂不支持
+	|'dashDotDot' | 'mediumDashDotDot'
+	|'dashDot' | 'mediumDashDot' | 'slantDashDot'
+	| 'dashed' | 'mediumDashed'
+	| 'dotted' | 'hair';
+	color: COLOR_SPEC;
 }
 interface XLSXStyle {
 	fill?: {
@@ -37,7 +46,13 @@ interface XLSXStyle {
 		readingOrder?: 0 | 1 | 2;
 		/** 文本旋转角度 */
 		textRotation?: 45 | 90 | 135 | 180 | 255;
-	}
+	},
+	border?: {
+		top?: XLSXBorder;
+		bottom?: XLSXBorder;
+		left?: XLSXBorder;
+		right?: XLSXBorder;
+	},
 }
 
 function getFillStyle(style: TemplateStyle, fill : XLSXStyle['fill'] = {}) {
@@ -102,8 +117,12 @@ function getStyle(style: TemplateStyle, s: XLSXStyle = {}) {
 	return s;
 
 }
+
+function toXLSXBorder({color}: BorderOptions): XLSXBorder {
+	return {color: {rgb: color}, style: 'thin'};
+}
 export default function exportXLSX(template: Template) {
-	const {value, data, widths, heights, merged, styles, freezeCol, freezeRow} = template;
+	const {value, data, widths, heights, merged, styles, freezeCol, freezeRow, borders} = template;
 	const ws = XLSX.utils.aoa_to_sheet(
 		value
 			? data.map((v, r) => v.map((f, c) => {
@@ -136,6 +155,20 @@ export default function exportXLSX(template: Template) {
 				ws[ref] = {s, v: '', t: 's'};
 			}
 		}
+	}
+	for (const {row, col, left, right, top, bottom} of borders || []) {
+		const ref = XLSX.utils.encode_cell({ c: col, r: row });
+		let cell: XLSX.CellObject | undefined = ws[ref];
+		if (!cell) { ws[ref] = cell = {v: '', t: 's'}; }
+		let style: XLSXStyle | undefined = cell.s;
+		if (!style) { cell.s = style = {}; }
+		let {border} = style;
+		if (!border) { style.border = border = {}; }
+		if (left) { border.left = toXLSXBorder(left); }
+		if (right) { border.right = toXLSXBorder(right); }
+		if (top) { border.top = toXLSXBorder(top); }
+		if (bottom) { border.bottom = toXLSXBorder(bottom); }
+
 	}
 
 

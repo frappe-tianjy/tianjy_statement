@@ -1,4 +1,4 @@
-import type { Template } from '../types.mjs';
+import type { BorderOptions, Template } from '../types.mjs';
 
 function getClassName(s: Record<string, any>) {
 	const className: string[] = [];
@@ -21,9 +21,12 @@ function getClassName(s: Record<string, any>) {
 	return className.join(' ');
 }
 
-
+function toSettingBorder(v?: BorderOptions) {
+	if (!v) { return; }
+	return {...v, width: 1 };
+}
 export default function toSettings(value: Template) {
-	const { data, merged, widths, heights, styles, freezeRow, freezeCol } = value;
+	const { data, merged, widths, heights, styles, freezeRow, freezeCol, borders } = value;
 	return {
 		data: data.map(v => [...v]),
 		mergeCells: merged || [],
@@ -31,6 +34,15 @@ export default function toSettings(value: Template) {
 		rowHeights: heights || [],
 		fixedRowsTop: freezeRow || 0,
 		fixedColumnsStart: freezeCol || 0,
+		customBorders: borders?.map(({
+			row, col, left, right, top, bottom,
+		}) => ({
+			row, col,
+			left: toSettingBorder(left),
+			right: toSettingBorder(right),
+			top: toSettingBorder(top),
+			bottom: toSettingBorder(bottom),
+		})) || [],
 		cell: styles?.flatMap((v, row) => v?.map((s, col) => s ? {
 			row, col,
 			bold: s.bold,

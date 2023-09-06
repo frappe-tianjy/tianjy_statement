@@ -21,11 +21,86 @@ function getStartRange(table: Handsontable): [number, number] | null {
 }
 
 
+function setBorder(
+	handsontable: Handsontable,
+	selection: Handsontable.plugins.ContextMenu.Selection[],
+	type: 'all' | 'top' | 'right' | 'bottom' | 'left' | 'inner' | 'clear',
+) {
+	const customBorders = handsontable.getPlugin('customBorders');
+	switch (type) {
+		case 'all':
+			customBorders.setBorders(selection.map(v=> [
+				v.start.row,
+				v.start.col,
+				v.end.row,
+				v.end.col,
+			] as [number, number, number, number]), {
+				left: {color: '#000000', width: 1},
+				right: {color: '#000000', width: 1},
+				top: {color: '#000000', width: 1},
+				bottom: {color: '#000000', width: 1},
+			});
+			break;
+		case 'clear':
+			customBorders.clearBorders(selection.map(v=> [
+				v.start.row,
+				v.start.col,
+				v.end.row,
+				v.end.col,
+			] as [number, number, number, number]));
+			break;
+		case 'top':
+			customBorders.setBorders(selection.map(v=> [
+				v.start.row,
+				v.start.col,
+				v.start.row,
+				v.end.col,
+			] as [number, number, number, number]), {
+				top: {color: '#000000', width: 1},
+			});
+			break;
+		case 'right':
+			customBorders.setBorders(selection.map(v=> [
+				v.start.row,
+				v.end.col,
+				v.end.row,
+				v.end.col,
+			] as [number, number, number, number]), {
+				right: {color: '#000000', width: 1},
+			});
+			break;
+		case 'bottom':
+			customBorders.setBorders(selection.map(v=> [
+				v.end.row,
+				v.start.col,
+				v.end.row,
+				v.end.col,
+			] as [number, number, number, number]), {
+				bottom: {color: '#000000', width: 1},
+			});
+			break;
+		case 'left':
+			customBorders.setBorders(selection.map(v=> [
+				v.start.row,
+				v.start.col,
+				v.end.row,
+				v.start.col,
+			] as [number, number, number, number]), {
+				left: {color: '#000000', width: 1},
+			});
+			break;
+		case 'inner':
+			// TODO
+			break;
+
+	}
+}
+
 export default function create(
 	el: HTMLElement,
 	height: string,
 	names: { name: string; expression: string | undefined; }[] = [],
-	cb?: (template: Template) => void,
+	cb?: (editor: XLSXEditor) => void,
 ): XLSXEditor {
 	el.style.overscrollBehavior = 'contain';
 	el.style.isolation = 'isolate';
@@ -51,6 +126,35 @@ export default function create(
 				redo: {},
 				hr3: '---------' as any,
 				alignment: {},
+				border: { name: '边框', submenu: { items: [
+					{ key: 'border:all', name: '全部', callback(key, selection, clickEvent) {
+						setBorder(this, selection, 'all');
+					}},
+					// { key: 'border:inner', name: '内部', callback(key, selection, clickEvent) {
+					// 	setBorder(this, selection, 'inner');
+					// }},
+					{ key: 'border:outer', name: '外框', callback(key, selection, clickEvent) {
+						setBorder(this, selection, 'top');
+						setBorder(this, selection, 'right');
+						setBorder(this, selection, 'bottom');
+						setBorder(this, selection, 'left');
+					}},
+					{ key: 'border:top', name: '上', callback(key, selection, clickEvent) {
+						setBorder(this, selection, 'top');
+					}},
+					{ key: 'border:right', name: '右', callback(key, selection, clickEvent) {
+						setBorder(this, selection, 'right');
+					}},
+					{ key: 'border:bottom', name: '下', callback(key, selection, clickEvent) {
+						setBorder(this, selection, 'bottom');
+					}},
+					{ key: 'border:left', name: '左', callback(key, selection, clickEvent) {
+						setBorder(this, selection, 'left');
+					}},
+					{ key: 'border:clear', name: '清除', callback(key, selection, clickEvent) {
+						setBorder(this, selection, 'clear');
+					}},
+				] } },
 				hr4: '---------' as any,
 
 				freeze: {
@@ -121,29 +225,15 @@ export default function create(
 		manualColumnResize: true,
 		manualRowResize: true,
 		mergeCells: [],
+		customBorders: [],
 		language: 'zh-CN',
 		renderer: customStylesRenderer,
 		licenseKey: 'non-commercial-and-evaluation',
 		// @ts-ignore
 		formulas: { engine: HyperFormula, namedExpressions },
 	});
-	if (typeof cb === 'function') {
-		let timeout: any;
-		const update = () => {
-			clearTimeout(timeout);
-			timeout = setTimeout(() => { cb(readValue(table)); }, 0);
-		};
-		table.addHook('afterMergeCells', update);
-		table.addHook('afterUnmergeCells', update);
-		table.addHook('afterColumnResize', update);
-		table.addHook('afterRowResize', update);
-		table.addHook('afterChange', update);
-		table.addHook('afterSetCellMeta', update);
-		table.addHook('afterCellFreeze' as any, update);
-
-	}
 	let destroyed = false;
-	return {
+	const editor: XLSXEditor = {
 		destroy() {
 			if (destroyed) { return; }
 			destroyed = true;
@@ -198,5 +288,15 @@ export default function create(
 			formulas.enablePlugin();
 		},
 	};
+
+	if (typeof cb === 'function') {
+		let timeout: any;
+		table.addHook('afterRender', () => {
+			clearTimeout(timeout);
+			timeout = setTimeout(() => { cb(editor); }, 1);
+		});
+	}
+
+	return editor;
 
 }

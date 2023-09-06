@@ -1,4 +1,4 @@
-import type { Template } from '../types.mjs';
+import type { Template, TemplateBorder } from '../types.mjs';
 
 function replace(
 	value: string,
@@ -118,7 +118,7 @@ function get(value: any, keys: string) {
 }
 
 export default function render(
-	{ data, merged, heights, styles, ...layout }: Template,
+	{ data, merged, heights, styles, borders, ...layout }: Template,
 	dataArea: [number?, number?],
 	ctx: any,
 	rows: any[],
@@ -149,6 +149,12 @@ export default function render(
 		...layout,
 		heights: repeat(allData, heights || [], start, end),
 		styles: repeat(allData, styles || [], start, end),
+		borders: borders?.flatMap((v): TemplateBorder | TemplateBorder[] => {
+			const {row} = v;
+			if (row < start) { return v; }
+			if (row > end) { return {...v, row: row + length * (n - 1)}; }
+			return Array(n).fill(v).map((_, i) => ({...v, row: row + length * i}));
+		}),
 		merged: merged.flatMap(m => {
 			const s = m.row;
 			const e = m.row + m.rowspan - 1;

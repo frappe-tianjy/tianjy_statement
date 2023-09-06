@@ -27,6 +27,17 @@ export interface TemplateStyle {
 	middle?: 1;
 	bottom?: 1;
 }
+export interface BorderOptions {
+	color: string;
+}
+export interface TemplateBorder {
+	row: number;
+	col: number;
+	left?: BorderOptions;
+	right?: BorderOptions;
+	top?: BorderOptions;
+	bottom?: BorderOptions;
+}
 export interface Template {
 	data: any[][];
 	value?: any[][];
@@ -35,6 +46,7 @@ export interface Template {
 	heights: (number | undefined)[];
 	/** 列宽 */
 	widths: (number | undefined)[];
+	borders?: TemplateBorder[];
 	/** TODO: 样式 */
 	styles?: TemplateStyle[][];
 	freezeRow?: number;
