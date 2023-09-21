@@ -120,7 +120,7 @@ function get(value: any, keys: string) {
 export default function render(
 	{ data, merged, heights, styles, borders, ...layout }: Template,
 	dataArea: [number?, number?],
-	ctx: any,
+	global: any,
 	rows: any[],
 	minRow = 0,
 ): Template {
@@ -133,14 +133,14 @@ export default function render(
 	function replaceData(value: string) {
 		return replace(
 			value,
-			get.bind(null, { ctx }),
+			get.bind(null, { ...global }),
 			(s, e) => replaceCoord(s, e, length, start, end, n),
 		);
 	}
 	function replaceRowData(value: string, data: any, k: number) {
 		return replace(
 			value,
-			get.bind(null, { ctx, data }),
+			get.bind(null, { ...global, data }),
 			(s, e) => replaceDataCoord(s, e, k, length, start, end, n),
 		);
 	}

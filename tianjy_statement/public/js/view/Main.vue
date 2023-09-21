@@ -61,7 +61,7 @@ watch([handsontable, () => props.configuration, () => props.data], ([
 	editor, { template, startRow, endRow }, d,
 ]) => {
 	if (!editor || !template) { return; }
-	editor.value = render(template, [startRow, endRow], {}, d);
+	editor.value = render(template, [startRow, endRow], {ctx: {}}, d);
 });
 
 </script>
