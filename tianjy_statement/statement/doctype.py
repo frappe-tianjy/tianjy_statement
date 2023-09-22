@@ -34,7 +34,12 @@ def get_list(meta, fields, filters, or_filters, order_by):
 		docFields = meta.get('fields', filters={'fieldname': field});
 		docField = docFields[0] if docFields else None
 		if not docField: continue;
-		if docField.fieldtype not in ['Link', 'Tree Select']:
+		fieldtype = docField.fieldtype
+		if fieldtype == 'Select':
+			for v in values:
+				if k:= v[field]: v[field] = _(k)
+			continue
+		if fieldtype not in ['Link', 'Tree Select']:
 			continue
 		options = docField.options
 		if not options: continue;
