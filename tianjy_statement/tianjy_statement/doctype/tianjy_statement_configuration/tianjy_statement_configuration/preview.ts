@@ -54,9 +54,9 @@ export default async function preview(
 		if (destroyed) { return; }
 		k++;
 		const v = k;
-		const {list, ctx} = await get_data(name, data);
+		const {list, ctx, method} = await get_data(name, data);
 		if (destroyed || v !== k) { return; }
-		editor.value = render(template, dataArea, ctx, list);
+		editor.value = render(template, dataArea, {ctx, method}, list);
 	};
 	make_standard_filters(meta, (dialog as any).fields_dict.filters.wrapper, ctx, update);
 	update({});

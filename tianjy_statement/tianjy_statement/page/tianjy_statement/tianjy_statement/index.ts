@@ -125,9 +125,9 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 			if (destroyed) { return; }
 			k2++;
 			const v = k2;
-			const {list, ctx} = await getData(docname, data);
+			const {list, ctx, method} = await getData(docname, data);
 			if (destroyed || v !== k2) { return; }
-			editor.value = render(template, dataArea, ctx, list);
+			editor.value = render(template, dataArea, {ctx, method}, list);
 		};
 		const fields_dict = make_standard_filters(meta, filterDiv, ctx, update);
 		update({});

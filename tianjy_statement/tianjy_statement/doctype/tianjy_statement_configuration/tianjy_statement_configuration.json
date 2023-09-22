@@ -10,6 +10,7 @@
   "doc_type",
   "fields",
   "quick_filters",
+  "methods",
   "filters",
   "or_filters",
   "template_tab",
@@ -53,11 +54,13 @@
   {
    "fieldname": "filters",
    "fieldtype": "Code",
+   "hidden": 1,
    "label": "Filters"
   },
   {
    "fieldname": "or_filters",
    "fieldtype": "Code",
+   "hidden": 1,
    "label": "Or Filters"
   },
   {
@@ -106,11 +109,17 @@
    "fieldname": "permissions",
    "fieldtype": "Table MultiSelect",
    "options": "Tianjy Statement Permission"
+  },
+  {
+   "fieldname": "methods",
+   "fieldtype": "Table",
+   "label": "Methods",
+   "options": "Tianjy Statement Method"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-08-17 16:50:26.949827",
+ "modified": "2023-09-21 15:05:36.913305",
  "modified_by": "Administrator",
  "module": "Tianjy Statement",
  "name": "Tianjy Statement Configuration",

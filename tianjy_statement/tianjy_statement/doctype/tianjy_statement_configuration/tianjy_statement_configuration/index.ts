@@ -14,8 +14,8 @@ interface Named {
 	text?: string;
 }
 
-function getNamed(named: Named[]) {
-	const v = named.map(v => ({ name: `${v.type || 'ctx'}.${v.field}`, expression: v.text }));
+function getNamed(named: Named[], key = 'ctx') {
+	const v = named.map(v => ({ name: `${v.type || key}.${v.field}`, expression: v.text }));
 	return v;
 }
 
@@ -23,10 +23,11 @@ function getNamed(named: Named[]) {
 function updateTemplateEditorNamed(frm: any) {
 	const templateEditor: XLSXEditor = (frm as any).__templateEditor;
 	if (!templateEditor) { return; }
-	templateEditor.namedExpressions = getNamed([
-		...(frm.doc as any).fields || [],
-		...(frm.doc as any).quick_filters || [],
-	]);
+	templateEditor.namedExpressions = [
+		...getNamed((frm.doc as any).methods || [], 'method'),
+		...getNamed((frm.doc as any).quick_filters || [], 'ctx'),
+		...getNamed((frm.doc as any).fields || [], 'data'),
+	];
 }
 frappe.ui.form.on('Tianjy Statement Configuration', {
 	refresh: function (frm) {
@@ -56,7 +57,11 @@ frappe.ui.form.on('Tianjy Statement Configuration', {
 		const templateEditor = create(
 			el,
 			'600px',
-			getNamed([ ...doc.fields || [], ...doc.quick_filters || [] ]),
+			[
+				...getNamed(doc.methods || [], 'method'),
+				...getNamed(doc.quick_filters || [], 'ctx'),
+				...getNamed(doc.fields || [], 'data'),
+			],
 			e => {
 				const l = e.value;
 				if (!l) { return; }
