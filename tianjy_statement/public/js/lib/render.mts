@@ -16,7 +16,7 @@ function replace(
 					const r = v[k];
 					if (['number', 'boolean', 'bigint', 'string'].includes(typeof r)) {
 						v = r;
-						continue;
+						break;
 					}
 				}
 			}

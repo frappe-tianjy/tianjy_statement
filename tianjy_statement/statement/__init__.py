@@ -66,3 +66,16 @@ def get_data(name: str, ctx = {}):
 			statement=statement,
 		) for m in statement.get('methods')
 	}, **res);
+
+
+@frappe.whitelist()
+def get_method(method: str):
+	try:
+		fn = frappe.get_attr(method)
+	except Exception:
+		return None
+	from .. import whitelisted
+	if fn not in whitelisted:
+		return None
+	p = whitelisted[fn]
+	return p
