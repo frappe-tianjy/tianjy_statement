@@ -36,7 +36,7 @@ interface XLSXStyle {
 		vertAlign?: 'superscript' | 'subscript'
 	},
 	/** 对数字类型的单元格进行格式化 */
-	numFmt?: string | number;
+	numFmt?: string;
 	alignment?: {
 		vertical?: 'bottom' | 'center' | 'top'
 		horizontal?: 'left'|'center' |'right'

@@ -25,13 +25,24 @@ function toSettingBorder(v?: BorderOptions) {
 	if (!v) { return; }
 	return {...v, width: 1 };
 }
+
+function getType(type?: string) {
+	if (!type || !['text', 'numeric'].includes(type)) { return; }
+	return {
+		type,
+		numericFormat: type === 'numeric' ? { pattern: '0,0.00' } : undefined,
+		renderer: type,
+		editor: type,
+		dataType: type,
+	};
+}
 export default function toSettings(value: Template) {
 	const { data, merged, widths, heights, styles, freezeRow, freezeCol, borders } = value;
 	return {
-		data: data.map(v => [...v]),
+		data: data?.map(v => [...v]),
 		mergeCells: merged || [],
 		colWidths: widths || [],
-		rowHeights: heights || [],
+		rowHeights: (heights || []).map(v => v || 'auto'),
 		fixedRowsTop: freezeRow || 0,
 		fixedColumnsStart: freezeCol || 0,
 		customBorders: borders?.map(({
@@ -52,6 +63,8 @@ export default function toSettings(value: Template) {
 			bgColor: s.bgColor,
 			className: getClassName(s),
 			fontSize: s.fontSize,
+			...getType(s.type),
+			readOnly: Boolean(s.readOnly),
 		} : {row, col})).filter((Boolean)) || [],
 	};
 }

@@ -118,7 +118,7 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 		const dataArea: [number, number] = [doc.start_row, doc.end_row];
 		const ctx = doc.quick_filters || [];
 		const docname = doc.name;
-		const editor = create(body, '100%');
+		const editor = create(body, {height: '100%'});
 		let destroyed = false;
 		let k2 = 0;
 		const update = async (data: any) => {
