@@ -3,6 +3,7 @@ import type { DetailedSettings as MergeCellDetail } from 'handsontable/plugins/m
 export interface XLSXEditor {
 	destroy(): void
 	value: Template;
+	name: string;
 	formulasEnabled: boolean;
 	readonly destroyed: boolean
 	readValue(hasValue?: boolean): Template
@@ -14,6 +15,8 @@ export interface TemplateStyle {
 	underline?: 1;
 	color?: string;
 	bgColor?: string;
+	type?: 'text' | 'numeric';
+	readOnly?: 1;
 
 	fontSize?: number;
 

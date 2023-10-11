@@ -104,18 +104,16 @@ frappe.ui.form.on('Tianjy Statement Configuration', {
 		const root: HTMLElement = frm.fields_dict.template_editor.wrapper;
 		const el = root.appendChild(document.createElement('div'));
 		const doc = {...frm.doc as any};
-		const templateEditor = create(
-			el,
-			'600px',
-			getAllNamed(doc),
-			e => {
-				const l = e.value;
-				if (!l) { return; }
-				const template =JSON.stringify(l);
-				if (template === (frm.doc as any).template) { return; }
-				frm.set_value('template', template);
-			},
-		);
+		const templateEditor = create(el, {
+			height: '600px',
+			names: getAllNamed(doc),
+		}, e => {
+			const l = e.value;
+			if (!l) { return; }
+			const template =JSON.stringify(l);
+			if (template === (frm.doc as any).template) { return; }
+			frm.set_value('template', template);
+		});
 		(frm as any).__templateEditor = templateEditor;
 		(frm as any).__templateEditorDestroy = () => {
 			delete (frm as any).__templateEditorDestroy;

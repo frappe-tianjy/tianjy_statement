@@ -47,7 +47,7 @@ export default async function preview(
 
 
 	await transitionend;
-	const editor = create((dialog as any).fields_dict.show.wrapper, '600px');
+	const editor = create((dialog as any).fields_dict.show.wrapper, {height: '600px'});
 	let k = 0;
 	let destroyed = false;
 	const update = async (data: any) => {

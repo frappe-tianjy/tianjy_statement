@@ -96,15 +96,58 @@ function setBorder(
 	}
 }
 
-export default function create(
-	el: HTMLElement,
-	height: string,
-	names: { name: string; expression: string | undefined; }[] = [],
-	cb?: (editor: XLSXEditor) => void,
-): XLSXEditor {
+
+function setType(
+	table: Handsontable,
+	range:{start:{row:number, col:number}, end:{row:number, col:number}}[],
+	type: 'numeric' | 'text',
+) {
+	const prop = {
+		type,
+		numericFormat: type === 'numeric' ? { pattern: '0,0.00' } : undefined,
+		renderer: type,
+		editor: type,
+		dataType: type,
+	};
+
+	for (const item of range) {
+		const startRow = item.start.row;
+		const endRow = item.end.row;
+		const startCol = item.start.col;
+		const endCol = item.end.col;
+		for (let row =startRow; row<=endRow; row++ ){
+			for (let col =startCol; col<=endCol; col++){
+				table.setCellMetaObject(row, col, prop);
+			}
+		}
+	}
+	table.render();
+}
+
+
+export default function create(el: HTMLElement, {
+	formula: formulaEngine,
+	name,
+	height,
+	names = [],
+	readOnly,
+	inited,
+}: {
+	height: string;
+	formula?: HyperFormula;
+	name?: string;
+	names?: { name: string; expression: string | undefined; }[];
+	readOnly?: boolean;
+	inited?: () => void;
+}, cb?: (editor: XLSXEditor) => void): XLSXEditor {
 	el.style.overscrollBehavior = 'contain';
 	el.style.isolation = 'isolate';
 	let namedExpressions = names;
+	let sheetName = name || '';
+	let engine = formulaEngine || HyperFormula.buildEmpty({
+		licenseKey: 'internal-use-in-handsontable',
+		localeLang: 'zh-cn',
+	});
 
 	const table: Handsontable = new Handsontable(el, {
 		startRows: 8,
@@ -112,7 +155,13 @@ export default function create(
 		rowHeaders: true,
 		colHeaders: true,
 		contextMenu: {
-			items: {
+			items: readOnly ? {
+				row_above: {},
+				row_below: {},
+				hr0: '---------' as any,
+				col_left: {},
+				col_right: {},
+			} : {
 				row_above: {},
 				row_below: {},
 				hr0: '---------' as any,
@@ -124,6 +173,8 @@ export default function create(
 				hr2: '---------' as any,
 				undo: {},
 				redo: {},
+				sp3: '---------' as any,
+				make_read_only: {},
 				hr3: '---------' as any,
 				alignment: {},
 				border: { name: '边框', submenu: { items: [
@@ -190,6 +241,16 @@ export default function create(
 				cut: {},
 				hr6: '---------' as any,
 				mergeCells: {},
+				resumeEvaluation: { name:'重新计算', callback() {
+					const formulas = this.getPlugin('formulas');
+					if (formulas.enabled) {
+						formulas.disablePlugin();
+					}
+					const fs = this.getSettings().formulas;
+					this.updateSettings({ formulas: fs && {...fs} });
+					formulas.enablePlugin();
+					// this.render();
+				}},
 				formulasEnabled: {
 					name() {
 						const formulas = this.getPlugin('formulas');
@@ -199,10 +260,8 @@ export default function create(
 						const formulas = this.getPlugin('formulas');
 						const enabled = !formulas.enabled;
 						if (enabled) {
-							table.updateSettings({
-								// @ts-ignore
-								formulas: { engine: HyperFormula, namedExpressions },
-							});
+							const fs = this.getSettings().formulas;
+							this.updateSettings({ formulas: fs && {...fs} });
 							formulas.enablePlugin();
 						} else {
 							formulas.disablePlugin();
@@ -210,6 +269,13 @@ export default function create(
 						this.render();
 					},
 				},
+				'type':{ name:'类型', submenu:{ items:[ {
+					key:'type:numeric', name:'数字',
+					callback(type, range){ setType(this, range, 'numeric'); },
+				}, {
+					key:'type:text', name:'文本',
+					callback(type, range){ setType(this, range, 'text'); },
+				}]}},
 
 				hr7: '---------' as any,
 				style: {
@@ -221,7 +287,10 @@ export default function create(
 				},
 			},
 		},
+		readOnly,
 		height,
+		copyPaste: true,
+		trimWhitespace: false,
 		manualColumnResize: true,
 		manualRowResize: true,
 		mergeCells: [],
@@ -230,31 +299,47 @@ export default function create(
 		renderer: customStylesRenderer,
 		licenseKey: 'non-commercial-and-evaluation',
 		// @ts-ignore
-		formulas: { engine: HyperFormula, namedExpressions },
+		formulas: { engine, sheetName, namedExpressions },
+		afterInit: typeof inited === 'function' ? inited : undefined,
 	});
 	let destroyed = false;
+
+	function initFormulas() {
+		const fs = table.getSettings().formulas;
+		table.updateSettings({ formulas: fs && {...fs} });
+	}
+	function updateFormulas() {
+		const formulas = table.getPlugin('formulas');
+		if (!formulas.enabled) { return; }
+		formulas.disablePlugin();
+		initFormulas();
+		formulas.enablePlugin();
+
+	}
 	const editor: XLSXEditor = {
 		destroy() {
 			if (destroyed) { return; }
 			destroyed = true;
 			table.destroy();
+			const sheetId = engine.getSheetId(sheetName);
+			if (typeof sheetId !== 'number') { return; }
+			engine.removeSheet(sheetId);
+
 		},
 		get destroyed() { return destroyed; },
 		get value() { return readValue(table); },
 		set value(value) {
 			if (destroyed) { return; }
-			table.updateSettings(toSettings(value));
+			const settings = toSettings(value);
+			table.updateSettings(settings);
 		},
 		get formulasEnabled() { return table.getPlugin('formulas').enabled; },
 		set formulasEnabled(v) {
 			const enabled = Boolean(v);
-			if (table.getPlugin('formulas').enabled === enabled) { return; }
 			const formulas = table.getPlugin('formulas');
+			if (formulas.enabled === enabled) { return; }
 			if (enabled) {
-				table.updateSettings({
-					// @ts-ignore
-					formulas: { engine: HyperFormula, namedExpressions },
-				});
+				initFormulas();
 				formulas.enablePlugin();
 			} else {
 				formulas.disablePlugin();
@@ -262,30 +347,28 @@ export default function create(
 			table.render();
 		},
 		readValue(h) {
-			if (!h || table.getPlugin('formulas').enabled) {
-				return readValue(table, h);
-			}
+			if (!h) { return readValue(table); }
 			const formulas = table.getPlugin('formulas');
-			table.updateSettings({
-				// @ts-ignore
-				formulas: { engine: HyperFormula, namedExpressions },
-			});
+			if (formulas.enabled) { return readValue(table, true); }
+			initFormulas();
 			formulas.enablePlugin();
-			const value = readValue(table, h);
+			const value = readValue(table, true);
 			formulas.disablePlugin();
 			return value;
+		},
+		get name() { return sheetName; },
+		set name(newName) {
+			const name = newName || '';
+			if (name === sheetName) { return; }
+			const sheetId = engine.getSheetId(sheetName);
+			if (typeof sheetId !== 'number') { return; }
+			sheetName = name;
+			engine.renameSheet(sheetId, sheetName);
 		},
 		get namedExpressions() { return namedExpressions; },
 		set namedExpressions(names) {
 			namedExpressions = names;
-			const formulas = table.getPlugin('formulas');
-			if (!formulas.enabled) { return; }
-			formulas.disablePlugin();
-			table.updateSettings({
-				// @ts-ignore
-				formulas: { engine: HyperFormula, namedExpressions },
-			});
-			formulas.enablePlugin();
+			updateFormulas();
 		},
 	};
 

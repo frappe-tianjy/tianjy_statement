@@ -10,13 +10,20 @@ function* getXY(width: number, height: number): Iterable<[number, number]> {
 	}
 }
 
+function isType(v?: string): v is 'text' | 'numeric' {
+	if (!v) { return false; }
+	return ['text', 'numeric'].includes(v);
+}
+
 function getStyles(hot: Handsontable, width: number, height: number) {
 
 	const styles: TemplateStyle[][] = [];
 	for (const [x, y] of getXY(width, height)) {
 		try {
 			const {
-				row, col, bold, color, bgColor, italic, underline, className, fontSize,
+				row, col,
+				bold, color, bgColor, italic, underline, className, fontSize,
+				type, readOnly,
 			} = hot.getCellMeta(y, x);
 			while (styles.length <= row) { styles.push([]); }
 			const style: TemplateStyle = {};
@@ -45,6 +52,8 @@ function getStyles(hot: Handsontable, width: number, height: number) {
 			} else if (cname.includes('htBottom')) {
 				style.bottom = 1;
 			}
+			if (isType(type)) { style.type = type; }
+			if (readOnly) { style.readOnly = 1; }
 			styles[row][col] = style;
 		} catch (e) {
 			console.error(e);

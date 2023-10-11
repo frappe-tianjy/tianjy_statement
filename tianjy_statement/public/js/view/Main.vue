@@ -52,7 +52,7 @@ const root = shallowRef<HTMLElement>();
 const handsontable = computed(() => {
 	const el = root.value;
 	if (!el) { return; }
-	const table = create(el, '100%');
+	const table = create(el, {height: '100%'});
 	return table;
 });
 watch(handsontable, (_, editor) => { editor?.destroy(); });

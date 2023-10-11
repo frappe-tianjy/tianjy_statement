@@ -72,7 +72,7 @@ function getNamed(named: Named[]) {
 watch(() => {
 	const el = root.value;
 	if (!el) { return; }
-	const editor = create(el, '100%', getNamed([...cfg.value.fields || []]), e => {
+	const editor = create(el, {height: '100%', names: getNamed([...cfg.value.fields || []]) }, e => {
 		template.value = { ...template.value, ...e.value };
 	});
 	const { value } = template;
