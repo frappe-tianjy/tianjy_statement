@@ -14,20 +14,70 @@ interface Named {
 	text?: string;
 }
 
-function getNamed(named: Named[], key = 'ctx') {
-	const v = named.map(v => ({ name: `${v.type || key}.${v.field}`, expression: v.text }));
-	return v;
+
+function parseText(t?: string) {
+	if (!t) { return t; }
+	try {
+		return JSON.parse(t);
+	} catch {
+		return t;
+	}
 }
 
+
+function getAllNamed(doc: any) {
+	const list: {name: string, expression: any}[] = [];
+	function get(name: string, value: any) {
+		if (['number', 'boolean', 'bigint', 'string'].includes(typeof value)) {
+			if (name) {
+				list.push({ name, expression: value});
+			}
+			return;
+		}
+		if (!value || typeof value !== 'object') {
+			if (name) {
+				list.push({ name, expression: ''});
+			}
+			return;
+		}
+
+		if (name) {
+			for (const [k, v] of Object.entries(value)) {
+				get(`${name}.${k}`, v);
+			}
+		} else {
+			for (const [k, v] of Object.entries(value)) {
+				get(k, v);
+			}
+			return;
+		}
+
+		for (const k of ['_value', '_text', 'value', 'text']) {
+			const r = value[k];
+			if (['number', 'boolean', 'bigint', 'string'].includes(typeof r)) {
+				list.push({ name, expression: r });
+				return;
+			}
+		}
+		list.push({ name, expression: String(value) });
+	}
+	for (const v of doc.methods || []) {
+		get(`method.${v.field}`, parseText(v.text));
+	}
+	for (const v of doc.quick_filters || []) {
+		get(`ctx.${v.field}`, v.text);
+	}
+	for (const v of doc.fields || []) {
+		get(`${v.type || 'data'}.${v.field}`, v.text);
+	}
+	return list;
+
+}
 
 function updateTemplateEditorNamed(frm: any) {
 	const templateEditor: XLSXEditor = (frm as any).__templateEditor;
 	if (!templateEditor) { return; }
-	templateEditor.namedExpressions = [
-		...getNamed((frm.doc as any).methods || [], 'method'),
-		...getNamed((frm.doc as any).quick_filters || [], 'ctx'),
-		...getNamed((frm.doc as any).fields || [], 'data'),
-	];
+	templateEditor.namedExpressions = getAllNamed(frm.doc);
 }
 frappe.ui.form.on('Tianjy Statement Configuration', {
 	refresh: function (frm) {
@@ -57,11 +107,7 @@ frappe.ui.form.on('Tianjy Statement Configuration', {
 		const templateEditor = create(
 			el,
 			'600px',
-			[
-				...getNamed(doc.methods || [], 'method'),
-				...getNamed(doc.quick_filters || [], 'ctx'),
-				...getNamed(doc.fields || [], 'data'),
-			],
+			getAllNamed(doc),
 			e => {
 				const l = e.value;
 				if (!l) { return; }
@@ -109,6 +155,60 @@ frappe.ui.form.on('Tianjy Statement Quick Filter', {
 		updateTemplateEditorNamed(frm);
 	},
 	quick_filters_remove(frm) {
+		updateTemplateEditorNamed(frm);
+
+	},
+});
+function renderMethodShow(frm: any, cdn: string) {
+	const row = frm.fields_dict.methods.grid.grid_rows.find(v => v.doc.name === cdn);
+	if (!row) { return; }
+	const wrapper: HTMLElement | undefined = row.grid_form
+		?.fields_dict
+		?.show
+		?.wrapper;
+	if (!wrapper) { return; }
+	wrapper.innerHTML = '';
+	const {doc} = row;
+	const {desc} = doc;
+	if (desc) {
+		const descPre = wrapper.appendChild(document.createElement('pre'));
+		descPre.innerText = doc.desc;
+		wrapper.appendChild(document.createElement('br'));
+	}
+	wrapper.appendChild(document.createElement('div')).innerText = '示例：';
+	const pre = wrapper.appendChild(document.createElement('pre'));
+	pre.innerText = JSON.stringify(parseText(doc.text), null, '\t');
+	pre.style.tabSize = '4';
+}
+frappe.ui.form.on('Tianjy Statement Method', {
+	form_render(frm, cdt, cdn) {
+		renderMethodShow(frm, cdn);
+	},
+	field(frm) {
+		updateTemplateEditorNamed(frm);
+	},
+	async method(frm, cdt, cdn) {
+		const method = frappe.get_doc(cdt, cdn)?.method;
+		if (!method) { return; }
+
+		const data = await frappe.call('tianjy_statement.statement.get_method', {method});
+		const message = data?.message;
+		if (!message) { return; }
+
+		const doc = frappe.get_doc(cdt, cdn);
+		if (method !== doc?.method) { return; }
+
+		doc.text = JSON.stringify(message.example);
+		doc.desc = message.desc ?? '';
+		renderMethodShow(frm, cdn);
+		frm.refresh_field('methods');
+
+		updateTemplateEditorNamed(frm);
+	},
+	text(frm) {
+		updateTemplateEditorNamed(frm);
+	},
+	methods_remove(frm) {
 		updateTemplateEditorNamed(frm);
 
 	},
