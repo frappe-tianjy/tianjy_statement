@@ -3,7 +3,7 @@ import HyperFormula from 'hyperformula';
 
 import type { Template, XLSXEditor } from '../types.mjs';
 
-import customStylesRenderer from './customStylesRenderer.mjs';
+import customStylesRenderer, { getRenderer } from './customStylesRenderer.mjs';
 import rendererStyleMenu from './rendererStyleMenu.mjs';
 import readValue from './readValue.mjs';
 import toSettings from './toSettings.mjs';
@@ -102,13 +102,18 @@ function setType(
 	range:{start:{row:number, col:number}, end:{row:number, col:number}}[],
 	type: 'numeric' | 'text',
 ) {
-	const prop = {
+	const prop: any = {
 		type,
-		numericFormat: type === 'numeric' ? { pattern: '0,0.00' } : undefined,
-		renderer: type,
+		className: '',
+		numericFormat: type === 'numeric' ? { pattern: '0,0.00' } : {},
+		renderer: getRenderer(type),
 		editor: type,
 		dataType: type,
 	};
+	if (type !== 'numeric') {
+		prop.valid = undefined;
+		prop.validator = undefined;
+	}
 
 	for (const item of range) {
 		const startRow = item.start.row;

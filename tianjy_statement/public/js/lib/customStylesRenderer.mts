@@ -1,6 +1,6 @@
 import Handsontable from 'handsontable';
 
-export default function customStylesRenderer(
+export function stylesRenderer(
 	hotInstance: Handsontable.Core,
 	TD: HTMLTableCellElement,
 	row: number,
@@ -9,7 +9,6 @@ export default function customStylesRenderer(
 	value: any,
 	cellProperties: Handsontable.CellProperties,
 ) {
-	Handsontable.renderers.TextRenderer(hotInstance, TD, row, col, prop, value, cellProperties);
 	const { bold, italic, underline, color, bgColor, fontSize } = cellProperties;
 	if (bold) { TD.style.fontWeight = 'bold'; }
 	if (italic) { TD.style.fontStyle = 'italic'; }
@@ -17,4 +16,26 @@ export default function customStylesRenderer(
 	if (color) { TD.style.color = color; }
 	if (bgColor) { TD.style.backgroundColor = bgColor; }
 	if (fontSize) { TD.style.fontSize = fontSize; }
+}
+
+
+export default function customStylesRenderer() {
+	Handsontable.renderers.TextRenderer(...arguments);
+	stylesRenderer(...arguments);
+}
+
+export function bindStyleRenderer(Renderer: any) {
+	return function () {
+		Renderer(...arguments);
+		stylesRenderer(...arguments);
+	};
+}
+export const renderers: Record<string, any> = {
+	numeric: bindStyleRenderer(Handsontable.renderers.NumericRenderer),
+	text: bindStyleRenderer(Handsontable.renderers.TextRenderer),
+};
+
+
+export function getRenderer(type?: string) {
+	return type && type in renderers && renderers[type] || customStylesRenderer;
 }
