@@ -331,6 +331,10 @@ export default function create(el: HTMLElement, {
 		set value(value) {
 			if (destroyed) { return; }
 			const settings = toSettings(value);
+			const sheetId = engine.getSheetId(sheetName);
+			if (typeof sheetId === 'number') {
+				engine.removeSheet(sheetId);
+			}
 			table.updateSettings(settings);
 		},
 		get formulasEnabled() { return table.getPlugin('formulas').enabled; },
