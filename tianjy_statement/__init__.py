@@ -6,9 +6,9 @@ whitelisted = dict()
 def whitelist(*, example = None, desc = None, **argv):
 	"""
 	Use as:
-		@tianjy_statement.whitelist()
+		@tianjy_statement.whitelist(example=dict(name="名字", size=20), desc="这是一个示例")
 		def myfunc(statement, ctx, meta=None, **args):
-			pass
+			return dict(name="桌子", size=3)
 	"""
 	def inner(fn):
 		global whitelisted
