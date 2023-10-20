@@ -1,5 +1,7 @@
 import type { BorderOptions, Template } from '../types.mjs';
 
+import customStylesRenderer, { getRenderer } from './customStylesRenderer.mts';
+
 function getClassName(s: Record<string, any>) {
 	const className: string[] = [];
 	if (s.left) {
@@ -30,8 +32,8 @@ function getType(type?: string) {
 	if (!type || !['text', 'numeric'].includes(type)) { return; }
 	return {
 		type,
-		numericFormat: type === 'numeric' ? { pattern: '0,0.00' } : undefined,
-		renderer: type,
+		numericFormat: type === 'numeric' ? { pattern: '0,0.00' } : {},
+		renderer: getRenderer(type),
 		editor: type,
 		dataType: type,
 	};
@@ -63,6 +65,11 @@ export default function toSettings(value: Template) {
 			bgColor: s.bgColor,
 			className: getClassName(s),
 			fontSize: s.fontSize,
+			type: '',
+			numericFormat: {},
+			dataType: '',
+			renderer: customStylesRenderer,
+			editor: 'text',
 			...getType(s.type),
 			readOnly: Boolean(s.readOnly),
 		} : {row, col})).filter((Boolean)) || [],
