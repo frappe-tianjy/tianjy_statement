@@ -70,6 +70,13 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 	wrapper.style.display = 'flex';
 	wrapper.style.flexDirection = 'column';
 	wrapper.style.height = 'calc(100vh - 60px)';
+	const main = wrapper.appendChild(document.createElement('div'));
+	main.style.background = '#FFF';
+	main.style.flex = '1';
+	main.style.display = 'flex';
+	main.style.flexDirection = 'column';
+	main.style.position = 'relative';
+	const loading = main.appendChild(document.createElement('tianjy-loading'));
 
 
 	let destroy = noop;
@@ -83,6 +90,7 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 		setPath(name);
 		k++;
 		let kk = k;
+		loading.hidden = false;
 		const doc: any = await get_template(name);
 		if (kk !== k) { return; }
 		title.textContent = doc.label || doc.name || label;
@@ -104,14 +112,14 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 			return;
 		}
 
-		const toolbar = wrapper.appendChild(document.createElement('div'));
+		const toolbar = main.insertBefore(document.createElement('div'), loading);
 		toolbar.style.display = 'flex';
 		toolbar.style.flexDirection = 'row';
 		toolbar.style.background = '#FFF';
 		toolbar.style.padding = '8px';
 		const filterDiv = toolbar.appendChild(document.createElement('div'));
 		filterDiv.style.flex = '1';
-		const body = wrapper.appendChild(document.createElement('div'));
+		const body = main.insertBefore(document.createElement('div'), loading);
 		body.style.background = '#FFF';
 		body.style.flex = '1';
 
@@ -125,8 +133,10 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 			if (destroyed) { return; }
 			k2++;
 			const v = k2;
+			loading.hidden = false;
 			const {list, ctx, method} = await getData(docname, data);
 			if (destroyed || v !== k2) { return; }
+			loading.hidden = true;
 			editor.value = render(template, dataArea, {ctx, method}, list);
 		};
 		const fields_dict = make_standard_filters(meta, filterDiv, ctx, update);
