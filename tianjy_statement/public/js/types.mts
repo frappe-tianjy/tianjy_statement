@@ -7,7 +7,7 @@ export interface XLSXEditor {
 	formulasEnabled: boolean;
 	readonly destroyed: boolean
 	readValue(hasValue?: boolean): Template
-	namedExpressions: { name: string; expression: string | undefined; }[];
+	namedExpressions: Record<string, string>;
 }
 export interface TemplateStyle {
 	bold?: 1;

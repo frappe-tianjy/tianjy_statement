@@ -3,9 +3,11 @@
 
 import type { Template, XLSXEditor } from '../../../../public/js/types.mjs';
 import create from '../../../../public/js/lib/create.mjs';
+import toFieldArea from '../../../../public/js/utils/toFieldArea.mts';
 
 import preview from './preview';
 import setFields from './setFields.mjs';
+import setAreaFields from './setAreaFields.mjs';
 
 
 interface Named {
@@ -26,17 +28,17 @@ function parseText(t?: string) {
 
 
 function getAllNamed(doc: any) {
-	const list: {name: string, expression: any}[] = [];
+	const named: Record<string, any> = {};
 	function get(name: string, value: any) {
 		if (['number', 'boolean', 'bigint', 'string'].includes(typeof value)) {
 			if (name) {
-				list.push({ name, expression: value});
+				named[name] = value;
 			}
 			return;
 		}
 		if (!value || typeof value !== 'object') {
 			if (name) {
-				list.push({ name, expression: ''});
+				named[name] = '';
 			}
 			return;
 		}
@@ -55,11 +57,11 @@ function getAllNamed(doc: any) {
 		for (const k of ['_value', '_text', 'value', 'text']) {
 			const r = value[k];
 			if (['number', 'boolean', 'bigint', 'string'].includes(typeof r)) {
-				list.push({ name, expression: r });
+				named[name] = r;
 				return;
 			}
 		}
-		list.push({ name, expression: String(value) });
+		named[name] = String(value);
 	}
 	for (const v of doc.methods || []) {
 		get(`method.${v.field}`, parseText(v.text));
@@ -70,7 +72,7 @@ function getAllNamed(doc: any) {
 	for (const v of doc.fields || []) {
 		get(`${v.type || 'data'}.${v.field}`, v.text);
 	}
-	return list;
+	return named;
 
 }
 
@@ -81,7 +83,7 @@ function updateTemplateEditorNamed(frm: any) {
 }
 frappe.ui.form.on('Tianjy Statement Configuration', {
 	refresh: function (frm) {
-		setFields(frm);
+		setFields(frm).finally(() => setAreaFields(frm));
 		if (!frm.is_new()) {
 			const doc = {...frm.doc as any};
 			const doctype: string = doc.doc_type;
@@ -90,8 +92,9 @@ frappe.ui.form.on('Tianjy Statement Configuration', {
 				const dataArea: [number, number] = [doc.start_row, doc.end_row];
 				const {name} = doc;
 				const quickFilters = doc.quick_filters;
+				const fieldArea = toFieldArea(doc.areas);
 				frm.add_custom_button('Preview', () => {
-					preview(name, doctype, template, dataArea, quickFilters);
+					preview(name, doctype, template, dataArea, fieldArea, quickFilters);
 				});
 				const url = `/app/tianjy-statement/${doc.name}`;
 				frm.add_custom_button(`<a href="${url}">${__('查看')}</a>`, () => {
@@ -137,6 +140,7 @@ frappe.ui.form.on('Tianjy Statement Field', {
 	},
 	field(frm) {
 		updateTemplateEditorNamed(frm);
+		setAreaFields(frm);
 	},
 	text(frm) {
 		updateTemplateEditorNamed(frm);

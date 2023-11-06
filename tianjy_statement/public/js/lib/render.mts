@@ -52,23 +52,21 @@ function replace(
  * @param length
  * @param start
  * @param end
- * @param n
+ * @param tailOffset
  * @returns
  */
 function replaceCoord(
 	s: number,
 	e: number,
-	length: number,
 	start: number,
 	end: number,
-	n: number,
+	tailOffset: number,
 ): [number, number] | undefined {
 	if (s > end && e > end) {
-		return [s + length * (n - 1), e + length * (n - 1)];
+		return [s + tailOffset, e + tailOffset];
 	}
 	if (s <= start && e >= end) {
-		if (!n) { return; }
-		return [s, e + length * (n - 1)];
+		return [s, e + tailOffset];
 	}
 }
 
@@ -79,29 +77,28 @@ function replaceCoord(
 function replaceDataCoord(
 	s: number,
 	e: number,
-	k: number,
-	length: number,
 	start: number,
 	end: number,
-	n: number,
+	tailOffset: number,
+	lineOffset: number,
 ): [number, number] | undefined {
 	if (s > end && e > end) {
-		return [s + length * (n - 1), e + length * (n - 1)];
+		return [s + tailOffset, e + tailOffset];
 	}
 	if (s >= start && e <= end) {
-		return [s + length * k, e + length * k];
+		return [s + lineOffset, e + lineOffset];
 	}
 	if (s < start && e > end) {
-		if (!n) { return; }
-		return [s, e + length * (n - 1)];
+		if (!tailOffset) { return; }
+		return [s, e + tailOffset];
 	}
 }
 
-function repeat<T>(rows: any[], list: T[], start: number, end: number) {
+function repeat<T>(n: number, list: T[], start: number, end: number) {
 	const all = list.slice(start, end + 1);
 	return [
 		...list.slice(0, start),
-		...[...rows].fill(all).flat(),
+		...Array(n).fill(all).flat(),
 		...list.slice(end + 1),
 	];
 }
@@ -117,60 +114,154 @@ function get(value: any, keys: string) {
 
 }
 
+function run(rows: any[], fieldArea: [number, number, field: string][]) {
+	const rowData: [object, Set<number>][] = [];
+	const group: number[] = [];
+	for (const row of rows) {
+		const lengths = fieldArea.map(([s, e, f]) => {
+			const list = row[f];
+			return [
+				s, e, f, Array.isArray(list) ? list.length : 0,
+			] as [number, number, field: string, number];
+		});
+		const max = lengths.reduce((v, l) => Math.max(v, l[3]), 1);
+		group.push(max);
+		for (let i = 0; i < max; i++) {
+			const value = {...row};
+			const mask: Set<number> = new Set();
+			for (const [s, e, f, l] of lengths) {
+				if (l > i) {
+					value[f] = row[f][i];
+					continue;
+				}
+				delete value[f];
+				for (let i = s; i < e; i++) {
+					mask.add(i);
+				}
+			}
+			rowData.push([value, mask]);
+		}
+	}
+	return {rowData, group};
+
+}
 export default function render(
 	{ data, merged, heights, styles, borders, ...layout }: Template,
 	dataArea: [number?, number?],
 	global: any,
 	rows: any[],
+	fieldArea: [number, number, field: string][] = [],
 	minRow = 0,
 ): Template {
+	/** 开始行 */
 	const start = ((dataArea[0] || 1) - 1) <= 0 ? 0 : (dataArea[0] || 1) - 1;
+	/** 结束行 */
 	const end = (dataArea[1] || 1) - 1 <= start ? start : (dataArea[1] || 1) - 1;
+	/** 数据行的行数 */
 	const length = end - start + 1;
-	const addLength = Math.max(0, Math.floor(minRow) || 0) - rows.length;
-	const allData = addLength <= 0 ? rows : [...rows, ...Array(addLength).fill({})];
-	const n = allData.length;
+	const {rowData, group} = run(rows, fieldArea);
+	const n = Math.max(rowData.length * length, Math.floor(minRow) || 0);
+	/** 在数据行之后，而外添加的行数 */
+	const addLength = Math.max(0, n - rowData.length * length);
+	const tailOffset = n - length;
+
+
 	function replaceData(value: string) {
 		return replace(
 			value,
 			get.bind(null, { ...global }),
-			(s, e) => replaceCoord(s, e, length, start, end, n),
+			(s, e) => replaceCoord(s, e, start, end, tailOffset),
 		);
 	}
 	function replaceRowData(value: string, data: any, k: number) {
 		return replace(
 			value,
 			get.bind(null, { ...global, data }),
-			(s, e) => replaceDataCoord(s, e, k, length, start, end, n),
+			(s, e) => replaceDataCoord(s, e, start, end, tailOffset, k * length),
 		);
 	}
 	const dataRows = data.slice(start, end + 1);
+	const colMax = dataRows.reduce((max, v) => Math.max(v.length, max), 1);
+	const allMerged = merged.flatMap(m => {
+		const s = m.row;
+		const e = m.row + m.rowspan - 1;
+		if (s >= start && e <= end) {
+			if (s === start && e === end) { return []; }
+			return Array(n).fill(0).map((_, index) => ({ ...m, row: m.row + length * index }));
+		}
+		if (s <= start && e >= end) {
+			return { ...m, rowspan: m.rowspan + length * (n - 1) };
+		}
+		if (s < end) { return m; }
+		return { ...m, row: m.row + length * (n - 1) };
+
+	});
+	if (start === end) {
+		const area: {row: number, rowspan: number}[] = [];
+		const lineArea: {row: number, rowspan: number}[] = [];
+		let nextStart = start;
+		for (const g of group) {
+			(g > 1 ? area : lineArea).push({row: nextStart, rowspan: g});
+			nextStart += g;
+		}
+		const mask = new Set<number>();
+		for (const [s, e, f] of fieldArea) {
+			for (let i = s; i <= e; i++) {
+				mask.add(i);
+			}
+		}
+		for (const m of merged) {
+			const s = m.row;
+			const e = s + m.rowspan - 1;
+			if (s >= start && e <= end || s <= start && e >= end) {
+				const s = m.col;
+				const e = s + m.colspan - 1;
+				for (let i = s; i <= e; i++) {
+					mask.add(i);
+				}
+			}
+			if (s === start && e === end) {
+				for (const a of lineArea) {
+					allMerged.push({...m, ...a});
+				}
+				for (const a of area) {
+					allMerged.push({...m, ...a});
+				}
+			}
+		}
+		for (let i = 0; i < colMax; i++) {
+			if (mask.has(i)) { continue; }
+			for (const a of area) {
+				allMerged.push({col: i, colspan: 1, ...a});
+			}
+		}
+	} else {
+		for (const m of merged) {
+			const s = m.row;
+			const e = m.row + m.rowspan - 1;
+			if (s === start && e === end) {
+				for (let i = 0; i < n; i++) {
+					allMerged.push({...m, row: m.row + length * i});
+				}
+			}
+		}
+
+	}
 	return {
 		...layout,
-		heights: repeat(allData, heights || [], start, end),
-		styles: repeat(allData, styles || [], start, end),
+		heights: repeat(n, heights || [], start, end),
+		styles: repeat(n, styles || [], start, end),
 		borders: borders?.flatMap((v): TemplateBorder | TemplateBorder[] => {
 			const {row} = v;
 			if (row < start) { return v; }
 			if (row > end) { return {...v, row: row + length * (n - 1)}; }
 			return Array(n).fill(v).map((_, i) => ({...v, row: row + length * i}));
 		}),
-		merged: merged.flatMap(m => {
-			const s = m.row;
-			const e = m.row + m.rowspan - 1;
-			if (s >= start && e <= end) {
-				return allData.map((_, index) => ({ ...m, row: m.row + length * index }));
-			}
-			if (s <= start && e >= end) {
-				return { ...m, rowspan: m.rowspan + length * (allData.length - 1) };
-			}
-			if (s < end) { return m; }
-			return { ...m, row: m.row + length * (allData.length - 1) };
-
-		}),
+		merged: allMerged,
 		data: [
 			...data.slice(0, start).map(l => l.map(v => replaceData(v))),
-			...allData.flatMap((r, k) => dataRows.map(l => l.map(v => replaceRowData(v, r, k)))),
+			...rowData.flatMap(([r, mask], k) => dataRows.map(l => l.map((v, i) => mask.has(i) ? null : replaceRowData(v, r, k)))),
+			...Array(addLength).fill(0).map(() => Array(colMax).fill(null)),
 			...data.slice(end + 1).map(l => l.map(v => replaceData(v))),
 		],
 	};

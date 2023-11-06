@@ -5,6 +5,7 @@ import render from '../../../../public/js/lib/render.mjs';
 import create from '../../../../public/js/lib/create.mjs';
 import exportXLSX from '../../../../public/js/lib/exportXLSX.mjs';
 import make_standard_filters, { getFilterValues } from '../../../../public/js/lib/makeFilters.mjs';
+import toFieldArea from '../../../../public/js/utils/toFieldArea.mts';
 
 const doctype = 'Tianjy Statement Configuration';
 
@@ -124,6 +125,7 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 		body.style.flex = '1';
 
 		const dataArea: [number, number] = [doc.start_row, doc.end_row];
+		const fieldArea = toFieldArea(doc.areas);
 		const ctx = doc.quick_filters || [];
 		const docname = doc.name;
 		const editor = create(body, {height: '100%'});
@@ -137,7 +139,7 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 			const {list, ctx, method} = await getData(docname, data);
 			if (destroyed || v !== k2) { return; }
 			loading.hidden = true;
-			editor.value = render(template, dataArea, {ctx, method}, list);
+			editor.value = render(template, dataArea, {ctx, method}, list, fieldArea);
 		};
 		const fields_dict = make_standard_filters(meta, filterDiv, ctx, update);
 		update({});
