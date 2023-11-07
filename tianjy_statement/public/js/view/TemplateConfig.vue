@@ -66,8 +66,8 @@ interface Named {
 	text?: string;
 }
 function getNamed(named: Named[]) {
-	const v = named.map(v => ({ name: `${v.type || 'ctx'}.${v.field}`, expression: v.text }));
-	return v;
+	const v = named.map(v => ([`${v.type || 'ctx'}.${v.field}`, v.text]));
+	return Object.fromEntries(v);
 }
 watch(() => {
 	const el = root.value;

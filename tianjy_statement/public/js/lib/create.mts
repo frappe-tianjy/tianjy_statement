@@ -134,25 +134,32 @@ export default function create(el: HTMLElement, {
 	formula: formulaEngine,
 	name,
 	height,
-	names = [],
+	names,
 	readOnly,
 	inited,
 }: {
 	height: string;
 	formula?: HyperFormula;
 	name?: string;
-	names?: { name: string; expression: string | undefined; }[];
+	names?: Record<string, string>;
 	readOnly?: boolean;
 	inited?: () => void;
 }, cb?: (editor: XLSXEditor) => void): XLSXEditor {
 	el.style.overscrollBehavior = 'contain';
 	el.style.isolation = 'isolate';
-	let namedExpressions = names;
+	let namedExpressions = names || {};
 	let sheetName = name || '';
 	let engine = formulaEngine || HyperFormula.buildEmpty({
 		licenseKey: 'internal-use-in-handsontable',
 		localeLang: 'zh-cn',
 	});
+	for (const [name, expression] of Object.entries(namedExpressions)) {
+		try {
+			engine.addNamedExpression(name, expression);
+		} catch (e) {
+			console.error(e, name, expression);
+		}
+	}
 
 	const table: Handsontable = new Handsontable(el, {
 		startRows: 8,
@@ -303,8 +310,7 @@ export default function create(el: HTMLElement, {
 		language: 'zh-CN',
 		renderer: customStylesRenderer,
 		licenseKey: 'non-commercial-and-evaluation',
-		// @ts-ignore
-		formulas: { engine, sheetName, namedExpressions },
+		formulas: { engine, sheetName },
 		afterInit: typeof inited === 'function' ? inited : undefined,
 	});
 	let destroyed = false;
@@ -376,7 +382,21 @@ export default function create(el: HTMLElement, {
 		},
 		get namedExpressions() { return namedExpressions; },
 		set namedExpressions(names) {
+			for (const name of Object.keys(namedExpressions)) {
+				try {
+					engine.removeNamedExpression(name);
+				} catch (e) {
+					console.error(e, name);
+				}
+			}
 			namedExpressions = names;
+			for (const [name, expression] of Object.entries(namedExpressions)) {
+				try {
+					engine.addNamedExpression(name, expression);
+				} catch (e) {
+					console.error(e, name, expression);
+				}
+			}
 			updateFormulas();
 		},
 	};

@@ -20,6 +20,7 @@ export default async function preview(
 	doctype: string,
 	template: Template,
 	dataArea: [number, number],
+	fieldArea: [number, number, field: string][],
 	ctx: any,
 ) {
 	let hide = noop;
@@ -56,7 +57,7 @@ export default async function preview(
 		const v = k;
 		const {list, ctx, method} = await get_data(name, data);
 		if (destroyed || v !== k) { return; }
-		editor.value = render(template, dataArea, {ctx, method}, list);
+		editor.value = render(template, dataArea, {ctx, method}, list, fieldArea);
 	};
 	make_standard_filters(meta, (dialog as any).fields_dict.filters.wrapper, ctx, update);
 	update({});

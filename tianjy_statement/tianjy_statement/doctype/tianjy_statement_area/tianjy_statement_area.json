@@ -1,0 +1,49 @@
+{
+ "actions": [],
+ "creation": "2023-11-02 10:46:01.318447",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "field",
+  "start_col",
+  "end_col"
+ ],
+ "fields": [
+  {
+   "fieldname": "field",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Field",
+   "reqd": 1
+  },
+  {
+   "fieldname": "start_col",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Start Col",
+   "reqd": 1
+  },
+  {
+   "fieldname": "end_col",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "End Col",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2023-11-02 10:49:52.559387",
+ "modified_by": "Administrator",
+ "module": "Tianjy Statement",
+ "name": "Tianjy Statement Area",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "tianjy_organization_filter_method": "Equal"
+}

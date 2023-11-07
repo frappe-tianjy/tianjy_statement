@@ -17,6 +17,8 @@
   "start_row",
   "column_break_tnorf",
   "end_row",
+  "section_break_nnwy4",
+  "areas",
   "section_break_pk21n",
   "template",
   "template_editor",
@@ -115,11 +117,20 @@
    "fieldtype": "Table",
    "label": "Methods",
    "options": "Tianjy Statement Method"
+  },
+  {
+   "fieldname": "section_break_nnwy4",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "areas",
+   "fieldtype": "Table",
+   "options": "Tianjy Statement Area"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-09-21 15:05:36.913305",
+ "modified": "2023-11-06 16:44:46.247236",
  "modified_by": "Administrator",
  "module": "Tianjy Statement",
  "name": "Tianjy Statement Configuration",
@@ -142,6 +153,7 @@
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
+ "tianjy_organization_filter_method": "Equal",
  "title_field": "label",
  "translated_doctype": 1
 }
