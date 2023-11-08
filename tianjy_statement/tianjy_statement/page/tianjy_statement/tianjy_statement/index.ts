@@ -126,6 +126,7 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 
 		const dataArea: [number, number] = [doc.start_row, doc.end_row];
 		const fieldArea = toFieldArea(doc.areas);
+		const {transposition} = doc;
 		const ctx = doc.quick_filters || [];
 		const docname = doc.name;
 		const editor = create(body, {height: '100%'});
@@ -139,7 +140,7 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 			const {list, ctx, method} = await getData(docname, data);
 			if (destroyed || v !== k2) { return; }
 			loading.hidden = true;
-			editor.value = render(template, dataArea, {ctx, method}, list, fieldArea);
+			editor.value = render(template, dataArea, {ctx, method}, list, fieldArea, transposition);
 		};
 		const fields_dict = make_standard_filters(meta, filterDiv, ctx, update);
 		update({});

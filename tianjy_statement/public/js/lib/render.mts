@@ -1,9 +1,119 @@
 import type { Template, TemplateBorder } from '../types.mjs';
 
+
+interface XlsxRange {
+	startColFixed: boolean;
+	startCol: number;
+	startRowFixed: boolean;
+	startRow: number;
+	endColFixed: boolean;
+	endCol: number;
+	endRowFixed: boolean;
+	endRow: number;
+	many: boolean;
+
+}
+const ACode = 'A'.charCodeAt(0);
+function parseCol(s: string) {
+	let v = 0;
+	for (let k = 1; k < s.length; k++) {
+		v = (v + 1) * 26;
+	}
+	return v + [...s.toUpperCase()]
+		.map(s => s.charCodeAt(0) - ACode)
+		.reduce((v, s) => v * 26 + s, 0);
+}
+
+function toCol(n: number) {
+	let v = 26;
+	let i = 1;
+	while (n >= v) {
+		// eslint-disable-next-line no-param-reassign
+		n -= v;
+		i++;
+		v *= 26;
+	}
+	let t: string[] = [];
+	while (n > 0) {
+		t.push(String.fromCharCode(n % 26 + ACode));
+		// eslint-disable-next-line no-param-reassign
+		n = Math.floor(n / 26);
+	}
+	if (t.length < i) {
+		t = t.concat(Array(i - t.length).fill('A'));
+	}
+	return t.reverse().join('');
+}
+
+function parseRange(t: string): XlsxRange | undefined {
+	const r = /^(\$?)([A-Z]+)(\$?)(\d+)(?::(\$?)([A-Z]+)(\$?)(\d+))?$/.exec(t);
+	if (!r) { return; }
+	const startColFixed = Boolean(r[1]);
+	const startCol = parseCol(r[2]);
+	const startRowFixed = Boolean(r[3]);
+	const startRow = Number(t[4]) - 1;
+	let many = false;
+	let endColFixed = startColFixed;
+	let endCol = startCol;
+	let endRowFixed = startRowFixed;
+	let endRow = startRow;
+	if (r[6]) {
+		endColFixed = Boolean(r[5]);
+		endCol = parseCol(r[6]);
+		endRowFixed = Boolean(r[7]);
+		endRow = Number(t[8]) - 1;
+
+	}
+	return {
+		startColFixed, startCol, startRowFixed, startRow,
+		endColFixed, endCol, endRowFixed, endRow,
+		many,
+	};
+}
+function stringRange({
+	startColFixed, startCol, startRowFixed, startRow,
+	endColFixed, endCol, endRowFixed, endRow,
+	many,
+}: XlsxRange) {
+	const t = [
+		[
+			startColFixed ? '$' : '',
+			toCol(startCol),
+			startRowFixed ? '$' : '',
+			startRow - 1,
+		].join(''),
+	];
+	if (many
+		|| startColFixed !== endColFixed
+		|| startCol !== endCol
+		|| startRowFixed !== endRowFixed
+		|| startRow !== endRow
+	) {
+		t.push([
+			endColFixed ? '$' : '',
+			toCol(endCol),
+			endRowFixed ? '$' : '',
+			endRow - 1,
+		].join(''));
+	}
+	return t.join(':');
+}
+function transpose<T>(value: T[][]): T[][] {
+	const inlineMax = value.reduce((max, v) => Math.max(v.length, max), 1);
+	const result: T[][] = Array(inlineMax).fill(value.length).map(v => Array(v).fill(null));
+	for (let i = 0; i < value.length; i++) {
+		const line = value[i];
+		for (let j = 0; j < line.length; j++) {
+			result[j][i] = line[j];
+		}
+	}
+	return result;
+}
 function replace(
 	value: string,
 	replaceName: (t: string) => any,
 	replaceReference: (s: number, e: number) => [number, number] | undefined | null,
+	transposition = false,
 ) {
 	if (typeof value !== 'string' || value[0] !== '=') { return value; }
 
@@ -26,23 +136,27 @@ function replace(
 			return '""';
 		}
 		if (!r) { return _; }
-		const t = /^(\$?[A-Z]+\$?)(\d+)(?::(\$?[A-Z]+\$?)(\d+))?$/i.exec(r);
-		if (!t) { return _; }
-		let b = Number(t[2]) - 1;
-		let e = Number(t[4] || t[2]) - 1;
+		const tt = parseRange(r);
+		if (!tt) { return _; }
+		let [b, e] = transposition
+			? [tt.startCol, tt.endCol]
+			: [tt.startRow, tt.endRow];
 		const reversed = b > e;
 		if (reversed) { [b, e] = [e, b]; }
-
 		const v = replaceReference(b, e);
 		if (!v) { return r; }
-		if (v[0] === v[1] && !t[3]) {
-			return `${t[1]}${v[0] + 1}`;
+		if (transposition) {
+			if (reversed) {
+				[tt.endCol, tt.startCol] = v;
+			} else {
+				[tt.startCol, tt.endCol] = v;
+			}
+		} else if (reversed) {
+			[tt.endRow, tt.startRow] = v;
+		} else {
+			[tt.startRow, tt.endRow] = v;
 		}
-		if (reversed) {
-			return `${t[1]}${v[1] + 1}:${t[3] || t[1]}${v[0] + 1}`;
-		}
-		return `${t[1]}${v[0] + 1}:${t[3] || t[1]}${v[1] + 1}`;
-
+		return stringRange(tt);
 	});
 }
 
@@ -143,14 +257,15 @@ function run(rows: any[], fieldArea: [number, number, field: string][]) {
 		}
 	}
 	return {rowData, group};
-
 }
+
 export default function render(
-	{ data, merged, heights, styles, borders, ...layout }: Template,
+	{ data, merged, heights, widths, styles, borders, ...layout }: Template,
 	dataArea: [number?, number?],
 	global: any,
 	rows: any[],
 	fieldArea: [number, number, field: string][] = [],
+	transposition = false,
 	minRow = 0,
 ): Template {
 	/** 开始行 */
@@ -171,6 +286,7 @@ export default function render(
 			value,
 			get.bind(null, { ...global }),
 			(s, e) => replaceCoord(s, e, start, end, tailOffset),
+			transposition,
 		);
 	}
 	function replaceRowData(value: string, data: any, k: number) {
@@ -178,30 +294,53 @@ export default function render(
 			value,
 			get.bind(null, { ...global, data }),
 			(s, e) => replaceDataCoord(s, e, start, end, tailOffset, k * length),
+			transposition,
 		);
 	}
-	const dataRows = data.slice(start, end + 1);
-	const colMax = dataRows.reduce((max, v) => Math.max(v.length, max), 1);
+
+	let newData = data;
+	if (transposition) { newData = transpose(newData); }
+	const dataRows = newData.slice(start, end + 1);
+	const inlineMax = dataRows.reduce((max, v) => Math.max(v.length, max), 1);
+	newData = [
+		...newData.slice(0, start).map(l => l.map(v => replaceData(v))),
+		...rowData.flatMap(([r, mask], k) => dataRows.map(l => l.map((v, i) => mask.has(i) ? null : replaceRowData(v, r, k)))),
+		...Array(addLength).fill(0).map(() => Array(inlineMax).fill(null)),
+		...newData.slice(end + 1).map(l => l.map(v => replaceData(v))),
+	];
+	if (transposition) { newData = transpose(newData); }
+	let blockStart: 'row' | 'col' = 'row';
+	let blockSpan: 'rowspan' | 'colspan' = 'rowspan';
+	let inlineStart: 'row' | 'col' = 'col';
+	let inlineSpan: 'rowspan' | 'colspan' = 'colspan';
+	if (transposition) {
+		blockStart = 'col';
+		blockSpan = 'colspan';
+		inlineStart = 'row';
+		inlineSpan = 'rowspan';
+	}
 	const allMerged = merged.flatMap(m => {
-		const s = m.row;
-		const e = m.row + m.rowspan - 1;
+		const s = m[blockStart];
+		const e = s + m[blockSpan] - 1;
+		if (s === start && e === end) { return []; }
 		if (s >= start && e <= end) {
-			if (s === start && e === end) { return []; }
-			return Array(n).fill(0).map((_, index) => ({ ...m, row: m.row + length * index }));
+			return Array(n).fill(0).map((_, index) => ({
+				...m, [blockStart]: m[blockStart] + length * index,
+			}));
 		}
 		if (s <= start && e >= end) {
-			return { ...m, rowspan: m.rowspan + length * (n - 1) };
+			return { ...m, [blockSpan]: m[blockSpan] + length * (n - 1) };
 		}
 		if (s < end) { return m; }
-		return { ...m, row: m.row + length * (n - 1) };
+		return { ...m, [blockStart]: m[blockStart] + length * (n - 1) };
 
 	});
 	if (start === end) {
-		const area: {row: number, rowspan: number}[] = [];
-		const lineArea: {row: number, rowspan: number}[] = [];
+		const area: object[] = [];
+		const lineArea: object[] = [];
 		let nextStart = start;
 		for (const g of group) {
-			(g > 1 ? area : lineArea).push({row: nextStart, rowspan: g});
+			(g > 1 ? area : lineArea).push({[blockStart]: nextStart, [blockSpan]: g});
 			nextStart += g;
 		}
 		const mask = new Set<number>();
@@ -211,11 +350,11 @@ export default function render(
 			}
 		}
 		for (const m of merged) {
-			const s = m.row;
-			const e = s + m.rowspan - 1;
+			const s = m[blockStart];
+			const e = s + m[blockSpan] - 1;
 			if (s >= start && e <= end || s <= start && e >= end) {
-				const s = m.col;
-				const e = s + m.colspan - 1;
+				const s = m[inlineStart];
+				const e = s + m[inlineSpan] - 1;
 				for (let i = s; i <= e; i++) {
 					mask.add(i);
 				}
@@ -229,41 +368,43 @@ export default function render(
 				}
 			}
 		}
-		for (let i = 0; i < colMax; i++) {
+		for (let i = 0; i < inlineMax; i++) {
 			if (mask.has(i)) { continue; }
 			for (const a of area) {
-				allMerged.push({col: i, colspan: 1, ...a});
+				allMerged.push({col: i, colspan: 1, row: i, rowspan: 1, ...a});
 			}
 		}
 	} else {
 		for (const m of merged) {
-			const s = m.row;
-			const e = m.row + m.rowspan - 1;
+			const s = m[blockStart];
+			const e = s + m[blockSpan] - 1;
 			if (s === start && e === end) {
 				for (let i = 0; i < n; i++) {
-					allMerged.push({...m, row: m.row + length * i});
+					allMerged.push({...m, [blockStart]: m[blockStart] + length * i});
 				}
 			}
 		}
 
 	}
+
+	let newStyles = styles || [];
+	if (transposition) { newStyles = transpose(newStyles); }
+	newStyles= repeat(n, newStyles || [], start, end);
+	if (transposition) { newStyles = transpose(newStyles); }
+
 	return {
 		...layout,
-		heights: repeat(n, heights || [], start, end),
+		widths: transposition ? repeat(n, widths || [], start, end) : widths,
+		heights:  transposition ? heights : repeat(n, heights || [], start, end),
 		styles: repeat(n, styles || [], start, end),
 		borders: borders?.flatMap((v): TemplateBorder | TemplateBorder[] => {
-			const {row} = v;
-			if (row < start) { return v; }
-			if (row > end) { return {...v, row: row + length * (n - 1)}; }
-			return Array(n).fill(v).map((_, i) => ({...v, row: row + length * i}));
+			const {[blockStart]:s} = v;
+			if (s < start) { return v; }
+			if (s > end) { return {...v, [blockStart]: s + length * (n - 1)}; }
+			return Array(n).fill(v).map((_, i) => ({...v, [blockStart]: s + length * i}));
 		}),
 		merged: allMerged,
-		data: [
-			...data.slice(0, start).map(l => l.map(v => replaceData(v))),
-			...rowData.flatMap(([r, mask], k) => dataRows.map(l => l.map((v, i) => mask.has(i) ? null : replaceRowData(v, r, k)))),
-			...Array(addLength).fill(0).map(() => Array(colMax).fill(null)),
-			...data.slice(end + 1).map(l => l.map(v => replaceData(v))),
-		],
+		data: newData,
 	};
 
 }
