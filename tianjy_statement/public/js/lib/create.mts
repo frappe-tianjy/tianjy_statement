@@ -312,6 +312,18 @@ export default function create(el: HTMLElement, {
 		licenseKey: 'non-commercial-and-evaluation',
 		formulas: { engine, sheetName },
 		afterInit: typeof inited === 'function' ? inited : undefined,
+		beforePaste: (data, coords) => {
+			for (const d of data) {
+				for (let i = 0; i < d.length; i++) {
+					const value = d[i];
+					if (!value) { continue; }
+					if (typeof value !== 'string') { continue; }
+					const n = Number(value.replace(/,/g, ''));
+					if (Number.isNaN(n)) { continue; }
+					d[i] = n;
+				}
+			}
+		},
 	});
 	let destroyed = false;
 
