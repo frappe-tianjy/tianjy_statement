@@ -4,7 +4,7 @@ from frappe import _
 import frappe.permissions
 import frappe.model.utils
 
-from .doctype import get_data_by_doctype
+from .doctype import get_data_by_doctype, set_data_by_doctype
 from ..tianjy_statement.doctype.tianjy_statement_configuration.tianjy_statement_configuration import TianjyStatementConfiguration
 
 @frappe.whitelist()
@@ -67,6 +67,15 @@ def get_data(name: str, ctx = {}):
 		) for m in statement.get('methods')
 	}, **res);
 
+@frappe.whitelist()
+def save_data(name: str, data):
+	statement = get_template(name)
+	if not statement: return
+	doctype = statement.doc_type
+	meta = frappe.get_meta(doctype)
+	if isinstance(data, str): data = json.loads(data)
+	fields = set(v.field for v in statement.get('fields') or [])
+	set_data_by_doctype(meta, fields, data)
 
 @frappe.whitelist()
 def get_method(method: str):

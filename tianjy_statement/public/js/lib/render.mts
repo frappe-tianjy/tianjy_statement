@@ -1,4 +1,5 @@
 import type { Template, TemplateBorder } from '../types.mjs';
+import type { InputMap } from '../types.mjs';
 
 
 interface XlsxRange {
@@ -109,6 +110,24 @@ function transpose<T>(value: T[][]): T[][] {
 	}
 	return result;
 }
+const nameCellRegex = /^=([A-Z]+(?:\.[A-Z\d_]+)+)$/i;
+const rangeRegex = /^(\$?[A-Z]+\$?\d+(?::\$?[A-Z]+\$?\d+)?)$/i;
+function getShowValue(v: any): string | boolean | bigint | string {
+	if (v && typeof v === 'object') {
+		for (const k of ['_value', '_text', 'value', 'text']) {
+			const r = v[k];
+			if (['number', 'boolean', 'bigint', 'string'].includes(typeof r)) {
+				// eslint-disable-next-line no-param-reassign
+				v = r;
+				break;
+			}
+		}
+	}
+	if (v && typeof v === 'object') { return String(v); }
+	if (['number', 'boolean', 'bigint', 'string'].includes(typeof v)) { return v; }
+	return '';
+
+}
 function replace(
 	value: string,
 	replaceName: (t: string) => any,
@@ -117,23 +136,20 @@ function replace(
 ) {
 	if (typeof value !== 'string' || value[0] !== '=') { return value; }
 
+	const path = nameCellRegex.exec(value)?.[1];
+	if (path && !rangeRegex.test(path)) {
+		const value = getShowValue(replaceName(path));
+		if (typeof value !== 'string') { return value; }
+		if (!value) { return value; }
+		if (!'=!-+\''.includes(value[0])) { return value; }
+		return `="${value.replace(/"/g, '""')}"`;
+	}
+
 	// eslint-disable-next-line vue/max-len
 	return value.replace(/"(?:[^"]|"")*"|(?<!:|\d)(\$?[A-Z]+\$?\d+(?::\$?[A-Z]+\$?\d+)?)(?![\dA-Z]|:)|([A-Z]+(?:\.[A-Z\d_]+)+)/ig, (_, r, n) => {
 		if (n) {
-			let v = replaceName(n);
-			if (v && typeof v === 'object') {
-				for (const k of ['_value', '_text', 'value', 'text']) {
-					const r = v[k];
-					if (['number', 'boolean', 'bigint', 'string'].includes(typeof r)) {
-						v = r;
-						break;
-					}
-				}
-			}
-			if (v && typeof v === 'object') { v = String(v); }
-			if (['number', 'boolean', 'bigint'].includes(typeof v)) { return String(v); }
-			if (typeof v === 'string') { return `"${v.replace(/"/g, '""')}"`; }
-			return '""';
+			const v = getShowValue(replaceName(n));
+			return typeof v === 'string' ? `"${v.replace(/"/g, '""')}"` : String(v);
 		}
 		if (!r) { return _; }
 		const tt = parseRange(r);
@@ -249,7 +265,7 @@ function run(rows: any[], fieldArea: [number, number, field: string][]) {
 					continue;
 				}
 				delete value[f];
-				for (let i = s; i < e; i++) {
+				for (let i = s; i <= e; i++) {
 					mask.add(i);
 				}
 			}
@@ -257,6 +273,76 @@ function run(rows: any[], fieldArea: [number, number, field: string][]) {
 		}
 	}
 	return {rowData, group};
+}
+
+
+function getInputMap(
+	dataRows: any[][],
+	rowData: [object, Set<number>][],
+	start: number,
+	end: number,
+	inlineMax: number,
+	fieldArea: [number, number, field: string][],
+	transposition,
+) {
+	/** 数据行的行数 */
+	const length = end - start + 1;
+	const fieldMap: string[] = [];
+	for (const [s, e, f] of fieldArea) {
+		for (let i = s; i <= e; i++) {
+			fieldMap[i] = f;
+		}
+	}
+	const inputMaps:(InputMap | undefined)[][] = [];
+	function set(map: InputMap, row: number, col: number) {
+		if (map.field === 'name') { return; }
+		if (!map.name) { return; }
+		const {value, subfield} = map;
+		if (subfield === 'name') { return; }
+		if (subfield && !map.subname) { return; }
+		if (value && typeof value === 'object') { return; }
+
+		if (transposition) {
+			// eslint-disable-next-line no-param-reassign
+			[row, col] = [col, row];
+		}
+		let r = inputMaps[row];
+		if (!r) {
+			inputMaps[row] = r = [];
+		}
+		r[col] = map;
+
+	}
+	for (const [k, [r, mask]] of rowData.entries()) {
+		if (!('name' in r)) { continue; }
+		const {name} = r as any;
+		const begin = start + k * length;
+		for (let col = 0; col < inlineMax; col++) {
+			if (mask.has(col)) { continue; }
+			for (const [p, line] of dataRows.entries()) {
+				const row = begin + p;
+				const expr = line[col];
+				if (typeof expr !== 'string' || expr[0] !== '=') { continue; }
+				const path = nameCellRegex.exec(expr)?.[1];
+				if (!path || rangeRegex.test(path)) { continue; }
+				const paths = path.split('.').filter(Boolean);
+				if (paths[0] !== 'data') { continue; }
+				const field = fieldMap[col];
+				if (!field) {
+					if (paths.length !== 2) { continue; }
+					const [, field] = paths;
+					set({name, field, value: r[field]}, row, col);
+					continue;
+				}
+				if (paths.length !== 3 || paths[1] !== field) { continue; }
+				const [,, subfield] = paths;
+				const subname = r[field]?.name;
+				set({name, field, subfield, subname, value: r[field]?.[subfield]}, row, col);
+			}
+		}
+	}
+	return inputMaps;
+
 }
 
 export default function render(
@@ -267,6 +353,7 @@ export default function render(
 	fieldArea: [number, number, field: string][] = [],
 	transposition = false,
 	minRow = 0,
+	needInputMap?: boolean,
 ): Template {
 	/** 开始行 */
 	const start = ((dataArea[0] || 1) - 1) <= 0 ? 0 : (dataArea[0] || 1) - 1;
@@ -302,9 +389,12 @@ export default function render(
 	if (transposition) { newData = transpose(newData); }
 	const dataRows = newData.slice(start, end + 1);
 	const inlineMax = dataRows.reduce((max, v) => Math.max(v.length, max), 1);
+
 	newData = [
 		...newData.slice(0, start).map(l => l.map(v => replaceData(v))),
-		...rowData.flatMap(([r, mask], k) => dataRows.map(l => l.map((v, i) => mask.has(i) ? null : replaceRowData(v, r, k)))),
+		...rowData.flatMap(([r, mask], k) =>
+			dataRows.map(l => l.map((v, i) => mask.has(i) ? null : replaceRowData(v, r, k))),
+		),
 		...Array(addLength).fill(0).map(() => Array(inlineMax).fill(null)),
 		...newData.slice(end + 1).map(l => l.map(v => replaceData(v))),
 	];
@@ -392,6 +482,15 @@ export default function render(
 	newStyles= repeat(n, newStyles || [], start, end);
 	if (transposition) { newStyles = transpose(newStyles); }
 
+	const inputMap = needInputMap ? getInputMap(
+		dataRows,
+		rowData,
+		start,
+		end,
+		inlineMax,
+		fieldArea,
+		transposition,
+	) : undefined;
 	return {
 		...layout,
 		widths: transposition ? repeat(n, widths || [], start, end) : widths,
@@ -405,6 +504,7 @@ export default function render(
 		}),
 		merged: allMerged,
 		data: newData,
+		inputMap,
 	};
 
 }

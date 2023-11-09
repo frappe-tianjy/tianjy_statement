@@ -21,7 +21,12 @@ function setCells(
 
 }
 
-function createBoolStyle(title: string, enabled: boolean, cb: (v: boolean) => void) {
+function createBoolStyle(
+	title: string,
+	enabled: boolean,
+	cb: (v: boolean) => void,
+	disabled?: boolean,
+) {
 	const label = document.createElement('label');
 	const input = label.appendChild(document.createElement('input'));
 	input.type = 'checkbox';
@@ -29,9 +34,15 @@ function createBoolStyle(title: string, enabled: boolean, cb: (v: boolean) => vo
 	input.addEventListener('change', () => { cb(input.checked); });
 	label.appendChild(document.createTextNode(title));
 	label.addEventListener('mouseup', e => { e.stopPropagation(); });
+	if (disabled) { input.disabled = true; }
 	return label;
 }
-function createColorStyle(title: string, color: string | undefined, cb: (v: string) => void) {
+function createColorStyle(
+	title: string,
+	color: string | undefined,
+	cb: (v: string) => void,
+	disabled?: boolean,
+) {
 	const div = document.createElement('div');
 	div.appendChild(document.createTextNode(title));
 	const input = div.appendChild(document.createElement('input'));
@@ -39,6 +50,7 @@ function createColorStyle(title: string, color: string | undefined, cb: (v: stri
 	if (color) { input.setAttribute('value', color); }
 	input.addEventListener('change', () => { cb(input.value); });
 	input.addEventListener('mouseup', e => { e.stopPropagation(); });
+	if (disabled) { input.disabled = true; }
 	return div;
 }
 
@@ -47,6 +59,7 @@ function createSelectStyle(
 	options: (string | {value: string, text: string})[],
 	value: string | undefined,
 	cb: (v: string) => void,
+	disabled?: boolean,
 ) {
 	const div = document.createElement('div');
 	div.appendChild(document.createTextNode(title));
@@ -67,6 +80,7 @@ function createSelectStyle(
 	if (value){ input.value = value; }
 	input.addEventListener('change', () => { cb(input.value); });
 	input.addEventListener('mouseup', e => { e.stopPropagation(); });
+	if (disabled) { input.disabled = true; }
 	return div;
 }
 
@@ -83,7 +97,7 @@ const fontSizes = [
 	`72px`,
 ];
 
-export default function rendererStyleMenu(table: Handsontable.Core) {
+export default function rendererStyleMenu(table: Handsontable.Core, disabled?: boolean) {
 	const a = table.getSelectedRange()?.[0]?.from;
 	const meta: Record<string, any> = a
 		&& table.getCellMeta(Math.max(0, a.row), Math.max(0, a.col))
@@ -92,14 +106,28 @@ export default function rendererStyleMenu(table: Handsontable.Core) {
 
 	const div = el.appendChild(document.createElement('div'));
 
-	div.appendChild(createBoolStyle('粗体', meta.bold, v => setCells(table, 'bold', v)));
-	div.appendChild(createBoolStyle('斜体', meta.italic, v => setCells(table, 'italic', v)));
-	div.appendChild(createBoolStyle('下划线', meta.underline, v => setCells(table, 'underline', v)));
-	el.appendChild(
-		createSelectStyle('字体大小', fontSizes, meta.fontSize, v => setCells(table, 'fontSize', v)),
+	div.appendChild(
+		createBoolStyle('粗体', meta.bold, v => setCells(table, 'bold', v), disabled),
 	);
-	el.appendChild(createColorStyle('文本颜色', meta.color, v => setCells(table, 'color', v)));
-	el.appendChild(createColorStyle('背景颜色', meta.bgColor, v => setCells(table, 'bgColor', v)));
+	div.appendChild(
+		createBoolStyle('斜体', meta.italic, v => setCells(table, 'italic', v), disabled),
+	);
+	div.appendChild(
+		createBoolStyle('下划线', meta.underline, v => setCells(table, 'underline', v), disabled),
+	);
+	el.appendChild(createSelectStyle(
+		'字体大小',
+		fontSizes,
+		meta.fontSize,
+		v => setCells(table, 'fontSize', v),
+		disabled,
+	));
+	el.appendChild(
+		createColorStyle('文本颜色', meta.color, v => setCells(table, 'color', v), disabled),
+	);
+	el.appendChild(
+		createColorStyle('背景颜色', meta.bgColor, v => setCells(table, 'bgColor', v), disabled),
+	);
 	// TODO: 文本大小选择框
 	return el;
 }

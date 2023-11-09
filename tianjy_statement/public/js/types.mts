@@ -7,6 +7,8 @@ export interface XLSXEditor {
 	formulasEnabled: boolean;
 	readonly destroyed: boolean
 	readValue(hasValue?: boolean): Template
+	getData(): any[][];
+	inputMode: boolean;
 	namedExpressions: Record<string, string>;
 }
 export interface TemplateStyle {
@@ -54,6 +56,7 @@ export interface Template {
 	styles?: TemplateStyle[][];
 	freezeRow?: number;
 	freezeCol?: number;
+	inputMap?: (InputMap | undefined)[][];
 }
 
 export interface Configuration {
@@ -62,4 +65,13 @@ export interface Configuration {
 	endRow?: number;
 	fields: string[];
 
+}
+
+
+export interface InputMap {
+	name: string;
+	field: string;
+	value: any;
+	subname?: string;
+	subfield?: string;
 }

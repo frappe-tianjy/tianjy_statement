@@ -7,6 +7,7 @@ import frappe.model.utils
 from ..tianjy_statement.doctype.tianjy_statement_configuration.tianjy_statement_configuration import TianjyStatementConfiguration
 
 def get_data_by_doctype(meta, fields, filters,or_filters, order_by, ctx):
+	# TODO: 返回字段定义
 	return dict(
 		list=get_list(meta, fields, filters, or_filters, order_by),
 		ctx=get_ctx(meta, ctx)
@@ -62,6 +63,18 @@ def query(meta: Meta, fields: set[str], filters, or_filters, order_by):
 
 	return values
 
+
+def get_field_map(requestFields: set[str]):
+	field_map: dict[str, set[str]] = dict()
+	for field in requestFields:
+		if '.' not in field: continue
+		main_field, sub_field = field.split('.')
+		if main_field in field_map:
+			field_map[main_field].add(sub_field)
+		else:
+			field_map[main_field] = set([sub_field])
+	return field_map
+
 def get_list(meta: Meta, requestFields: set[str], filters, or_filters, order_by):
 	allFields = (
 		set(frappe.model.utils.STANDARD_FIELD_CONVERSION_MAP.keys()) |
@@ -72,14 +85,7 @@ def get_list(meta: Meta, requestFields: set[str], filters, or_filters, order_by)
 	if not values: return []
 
 
-	field_map: dict[str, set[str]] = dict()
-	for field in requestFields:
-		if '.' not in field: continue
-		main_field, sub_field = field.split('.')
-		if main_field in field_map:
-			field_map[main_field].add(sub_field)
-		else:
-			field_map[main_field] = set([sub_field])
+	field_map: dict[str, set[str]] = get_field_map(requestFields)
 	if not field_map: return values
 
 
@@ -97,7 +103,7 @@ def get_list(meta: Meta, requestFields: set[str], filters, or_filters, order_by)
 			set(frappe.model.utils.STANDARD_FIELD_CONVERSION_MAP.keys()) |
 			set(v.fieldname for v in sub_meta.fields if v.fieldtype not in frappe.model.no_value_fields)
 		)
-		sub_docs = query(sub_meta, allFields & sub_fields | set(['parent']), filters = {
+		sub_docs = query(sub_meta, allFields & sub_fields | set(['parent', 'name']), filters = {
 			'parent': ('in', names),
 			'parenttype': meta.name,
 			'parentfield': main_field,
@@ -157,3 +163,52 @@ def get_ctx(meta, ctx):
 		return _(value)
 
 	return { k: get(v, k) for k,v in ctx.items() }
+
+
+def set_data_by_doctype(meta, requestFields: set[str], data: dict):
+	base_fields = (
+		set(frappe.model.utils.STANDARD_FIELD_CONVERSION_MAP.keys()) |
+		set(v.fieldname for v in meta.fields if v.fieldtype not in frappe.model.no_value_fields)
+	) & requestFields
+	if 'name' in base_fields: base_fields.remove('name')
+
+	field_map: dict[str, set[str]] = get_field_map(requestFields)
+
+	subfields: dict[str, set[str]] = dict()
+	for main_field, sub_fields in field_map.items():
+		fields = meta.get('fields', {'fieldname': main_field, 'fieldtype': 'Table'})
+		if not fields: continue
+		field = fields[0]
+		sub_meta = frappe.get_meta(field.options)
+		allFields = (
+			set(frappe.model.utils.STANDARD_FIELD_CONVERSION_MAP.keys()) |
+			set(v.fieldname for v in sub_meta.fields if v.fieldtype not in frappe.model.no_value_fields)
+		) & sub_fields
+		if 'name' in allFields: allFields.remove('name')
+		if 'parent' in allFields: allFields.remove('parent')
+		if 'parenttype' in allFields: allFields.remove('parenttype')
+		if 'parentfield' in allFields: allFields.remove('parentfield')
+		if not allFields: continue
+		subfields[main_field] = allFields
+
+	dt = meta.name
+	for name, values in data.items():
+		doc = frappe.get_doc(dt, name)
+		for field, value in values.items():
+			if isinstance(value, (str, int, float, bool)):
+				if field not in base_fields: continue
+				doc.set(field, value)
+			elif isinstance(value, dict):
+				if field not in subfields: continue
+				fields = subfields[field]
+				for sub_name, sub_value in value.items():
+					if not isinstance(sub_name, (str, int)): continue
+					if not isinstance(sub_value, dict): continue
+					sub_docs = doc.get(field, {'name': sub_name})
+					if not sub_docs: continue
+					sub_doc = sub_docs[0]
+					for k,v in sub_value.items():
+						if k not in fields: continue
+						if not isinstance(v, (str, int, float, bool)): continue
+						sub_doc.set(k, v)
+		doc.save()

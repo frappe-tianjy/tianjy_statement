@@ -6,6 +6,7 @@ import create from '../../../../public/js/lib/create.mjs';
 import exportXLSX from '../../../../public/js/lib/exportXLSX.mjs';
 import make_standard_filters, { getFilterValues } from '../../../../public/js/lib/makeFilters.mjs';
 import toFieldArea from '../../../../public/js/utils/toFieldArea.mts';
+import { InputMap } from '../../../../public/js/types.mts';
 
 const doctype = 'Tianjy Statement Configuration';
 
@@ -26,6 +27,15 @@ async function getData(name: string, ctx: Record<string, any>) {
 			method: 'tianjy_statement.statement.get_data',
 			args: { name, ctx },
 			callback(r) { resolve(r?.message || {list: [], ctx}); },
+		}).fail(reject);
+	});
+}
+async function saveData(name: string, data: Record<string, any>) {
+	return new Promise<any>((resolve, reject) => {
+		frappe.call({
+			method: 'tianjy_statement.statement.save_data',
+			args: { name, data },
+			callback(r) { resolve(r?.message); },
 		}).fail(reject);
 	});
 }
@@ -71,7 +81,7 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 	wrapper.style.display = 'flex';
 	wrapper.style.flexDirection = 'column';
 	wrapper.style.height = 'calc(100vh - 60px)';
-	const main = wrapper.appendChild(document.createElement('div'));
+	const main: HTMLElement = wrapper.appendChild(document.createElement('div'));
 	main.style.background = '#FFF';
 	main.style.flex = '1';
 	main.style.display = 'flex';
@@ -130,22 +140,113 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 		const ctx = doc.quick_filters || [];
 		const docname = doc.name;
 		const editor = create(body, {height: '100%'});
+		let inputMap: (InputMap | undefined)[][] | undefined;
+		let globalData: Record<string, any> = {};
+		let dataList = [];
+		const renderData = () => {
+			const d = render(template, dataArea, globalData, dataList, fieldArea, transposition, 0, Boolean(inputMap));
+			({inputMap} = d);
+			editor.inputMode = Boolean(inputMap);
+			if (inputMap) {
+				const map = inputMap;
+				const {styles, data} = d;
+				// TODO: 更新类型
+				if (styles) {
+					d.styles = styles.map((line, row) => line.map((style, col) => ({
+						...style,
+						readOnly: map[row]?.[col] ? undefined : 1,
+					})));
+				} else {
+					d.styles = data.map((line, row) => line.map((_, col) => ({
+						readOnly: map[row]?.[col] ? undefined : 1,
+					})));
+				}
+			}
+			editor.value = d;
+		};
 		let destroyed = false;
+		let saving = false;
 		let k2 = 0;
 		const update = async (data: any) => {
-			if (destroyed) { return; }
+			if (destroyed || saving) { return; }
 			k2++;
 			const v = k2;
 			loading.hidden = false;
 			const {list, ctx, method} = await getData(docname, data);
 			if (destroyed || v !== k2) { return; }
 			loading.hidden = true;
-			editor.value = render(template, dataArea, {ctx, method}, list, fieldArea, transposition);
+			globalData = {ctx, method};
+			dataList = list;
+			renderData();
 		};
 		const fields_dict = make_standard_filters(meta, filterDiv, ctx, update);
 		update({});
+		const save = async () => {
+			if (destroyed) { return; }
+			if (!inputMap) { return; }
+			if (saving) { return; }
+			const data = editor.getData();
+			const r = {};
+			for (const [row, line] of inputMap.entries()) {
+				if (!line) { continue; }
+				for (const [col, item] of line.entries()) {
+					if (!item) { continue; }
+					const newValue = data[row]?.[col] ?? null;
+					if (typeof newValue === 'object') { continue; }
+					const oldValue = item.value ?? null;
+					if (newValue === oldValue) { continue; }
+					const newText = newValue === null ? '' : String(newValue);
+					const oldText = oldValue === null ? '' : String(oldValue);
+					if (newText === oldText) { continue; }
+					const {name, field, subname, subfield} = item;
+					if (!(name in r)) {
+						r[name] = {};
+					}
+					const doc = r[name];
+					if (!subfield || !subname) {
+						doc[field] = newValue;
+						continue;
+					}
+					if (!(field in doc && typeof doc[field] === 'object')) {
+						doc[field] = {};
+					}
+					const sub = doc[field];
+
+					if (!(subname in sub)) {
+						sub[subname] = {};
+					}
+					sub[subname][subfield] = newValue;
+				}
+			}
+			try {
+				saving = true;
+				loading.hidden = false;
+				await saveData(docname, r);
+				if (destroyed) { return; }
+			} finally {
+				loading.hidden = true;
+				saving = false;
+			}
+			update(getFilterValues(fields_dict));
+		};
 		toolbar.appendChild(createButton('Refresh', () => update(getFilterValues(fields_dict))));
-		toolbar.appendChild(createButton('Export', () => exportXLSX(editor.readValue(true))));
+		const saveButton = toolbar.appendChild(createButton('Save', save));
+		const exportButton = toolbar.appendChild(createButton('Export', () => exportXLSX(editor.readValue(true))));
+		const modeButton = toolbar.appendChild(createButton('录入', () => {
+			if (inputMap) {
+				inputMap = undefined;
+				modeButton.innerText = '录入';
+				saveButton.hidden = true;
+				exportButton.hidden = false;
+			} else {
+				inputMap = [];
+				modeButton.innerText = '预览';
+				saveButton.hidden = false;
+				exportButton.hidden = true;
+			}
+			renderData();
+		}));
+		saveButton.hidden = true;
 		destroy = () => {
 			if (destroyed) { return; }
 			destroyed = true;
