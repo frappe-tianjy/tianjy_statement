@@ -40,6 +40,16 @@ async function saveData(name: string, data: Record<string, any>) {
 	});
 }
 
+async function createData(name: string, data: Record<string, any>) {
+	return new Promise<any>((resolve, reject) => {
+		frappe.call({
+			method: 'tianjy_statement.statement.create',
+			args: { name, data },
+			callback(r) { resolve(r?.message); },
+		}).fail(reject);
+	});
+}
+
 
 function getNewName() {
 	const [r, p, name] = location.pathname.split('/').filter(Boolean);
@@ -137,15 +147,43 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 		const dataArea: [number, number] = [doc.start_row, doc.end_row];
 		const fieldArea = toFieldArea(doc.areas);
 		const {transposition} = doc;
-		const ctx = doc.quick_filters || [];
+		const quickFilters: {field: string;required?: boolean;required_creating?: boolean}[] = doc.quick_filters || [];
 		const docname = doc.name;
 		const editor = create(body, {height: '100%'});
+		const tipArea = document.createElement('div');
 		let inputMap: (InputMap | undefined)[][] | undefined;
 		let globalData: Record<string, any> = {};
 		let dataList = [];
+		let filterValues = {};
+		let createDoc = () => {};
+		const creButton = toolbar.appendChild(createButton('Create', () => createDoc()));
+		function switchCreateButtonHidden() {
+			if (dataList.length) {
+				creButton.disabled = true;
+				return;
+			}
+			for (const {required_creating, field} of quickFilters) {
+				if (!required_creating) { continue; }
+				if (field in filterValues) { continue; }
+				const v = filterValues[field];
+				if (Array.isArray(v) && v[0] !== v[1]) { continue; }
+				creButton.disabled = true;
+				return;
+			}
+			for (const [k, v] of Object.entries(filterValues)) {
+				if (Array.isArray(v)) {
+					const [a, b] = v;
+					if (a === b) { continue; }
+					creButton.disabled = true;
+					return;
+				}
+			}
+			creButton.disabled = false;
+		}
 		const renderData = () => {
 			const d = render(template, dataArea, globalData, dataList, fieldArea, transposition, 0, Boolean(inputMap));
 			({inputMap} = d);
+			switchCreateButtonHidden();
 			editor.inputMode = Boolean(inputMap);
 			if (inputMap) {
 				const map = inputMap;
@@ -167,11 +205,20 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 		let destroyed = false;
 		let saving = false;
 		let k2 = 0;
-		const update = async (data: any) => {
+		const update = async (data: any, isRefresh = false) => {
 			if (destroyed || saving) { return; }
+			for (const {required, field} of quickFilters) {
+				if (!required) { continue; }
+				if (field in data) { continue; }
+				if (isRefresh) {
+					// TODO: 警告存在必填项未填写
+				}
+				return;
+			}
 			k2++;
 			const v = k2;
 			loading.hidden = false;
+			tipArea.remove();
 			const {list, ctx, method} = await getData(docname, data);
 			if (destroyed || v !== k2) { return; }
 			loading.hidden = true;
@@ -179,8 +226,40 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 			dataList = list;
 			renderData();
 		};
-		const fields_dict = make_standard_filters(meta, filterDiv, ctx, update);
-		update({});
+		const fields_dict = make_standard_filters(meta, filterDiv, quickFilters, data => {
+			filterValues = data;
+			update(data);
+		});
+		createDoc = async () => {
+			if (destroyed || saving) { return; }
+			const value = {};
+			for (const [k, v] of Object.entries(filterValues)) {
+				if (Array.isArray(v)) {
+					const [a, b] = v;
+					if (a !== b) { return; }
+					value[k] = b;
+					continue;
+				}
+			}
+			try {
+				saving = true;
+				loading.hidden = false;
+				await createData(docname, value);
+				if (destroyed) { return; }
+			} finally {
+				loading.hidden = true;
+				saving = false;
+			}
+			update(getFilterValues(fields_dict));
+
+		};
+		if (quickFilters.find(v => v.required)) {
+			// TODO: 样式
+			tipArea.style.position = 'ab';
+			body.appendChild(tipArea);
+		} else {
+			update({});
+		}
 		const save = async () => {
 			if (destroyed) { return; }
 			if (!inputMap) { return; }
@@ -218,6 +297,7 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 					sub[subname][subfield] = newValue;
 				}
 			}
+			if (!Object.keys(r).length) { return; }
 			try {
 				saving = true;
 				loading.hidden = false;
@@ -229,24 +309,27 @@ frappe.pages['tianjy-statement'].on_page_load = function (wrapper) {
 			}
 			update(getFilterValues(fields_dict));
 		};
-		toolbar.appendChild(createButton('Refresh', () => update(getFilterValues(fields_dict))));
-		const saveButton = toolbar.appendChild(createButton('Save', save));
 		const exportButton = toolbar.appendChild(createButton('Export', () => exportXLSX(editor.readValue(true))));
+		const saveButton = toolbar.appendChild(createButton('Save', save));
 		const modeButton = toolbar.appendChild(createButton('录入', () => {
 			if (inputMap) {
 				inputMap = undefined;
 				modeButton.innerText = '录入';
 				saveButton.hidden = true;
 				exportButton.hidden = false;
+				creButton.hidden = true;
 			} else {
 				inputMap = [];
 				modeButton.innerText = '预览';
 				saveButton.hidden = false;
 				exportButton.hidden = true;
+				creButton.hidden = false;
 			}
 			renderData();
 		}));
+		creButton.hidden = true;
 		saveButton.hidden = true;
+		toolbar.appendChild(createButton('Refresh', () => update(getFilterValues(fields_dict), true)));
 		destroy = () => {
 			if (destroyed) { return; }
 			destroyed = true;

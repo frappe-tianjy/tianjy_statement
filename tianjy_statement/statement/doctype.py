@@ -212,3 +212,10 @@ def set_data_by_doctype(meta, requestFields: set[str], data: dict):
 						if not isinstance(v, (str, int, float, bool)): continue
 						sub_doc.set(k, v)
 		doc.save()
+
+
+def create_by_doctype(meta, data: dict):
+	doc = frappe.new_doc(meta.name)
+	for k,v in data.items():
+		doc.set(k,v)
+	doc.save()
