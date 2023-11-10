@@ -1,48 +1,178 @@
 import type { Template, TemplateBorder } from '../types.mjs';
+import type { InputMap } from '../types.mjs';
 
+
+interface XlsxRange {
+	startColFixed: boolean;
+	startCol: number;
+	startRowFixed: boolean;
+	startRow: number;
+	endColFixed: boolean;
+	endCol: number;
+	endRowFixed: boolean;
+	endRow: number;
+	many: boolean;
+
+}
+const ACode = 'A'.charCodeAt(0);
+function parseCol(s: string) {
+	let v = 0;
+	for (let k = 1; k < s.length; k++) {
+		v = (v + 1) * 26;
+	}
+	return v + [...s.toUpperCase()]
+		.map(s => s.charCodeAt(0) - ACode)
+		.reduce((v, s) => v * 26 + s, 0);
+}
+
+function toCol(n: number) {
+	let v = 26;
+	let i = 1;
+	while (n >= v) {
+		// eslint-disable-next-line no-param-reassign
+		n -= v;
+		i++;
+		v *= 26;
+	}
+	let t: string[] = [];
+	while (n > 0) {
+		t.push(String.fromCharCode(n % 26 + ACode));
+		// eslint-disable-next-line no-param-reassign
+		n = Math.floor(n / 26);
+	}
+	if (t.length < i) {
+		t = t.concat(Array(i - t.length).fill('A'));
+	}
+	return t.reverse().join('');
+}
+
+function parseRange(t: string): XlsxRange | undefined {
+	const r = /^(\$?)([A-Z]+)(\$?)(\d+)(?::(\$?)([A-Z]+)(\$?)(\d+))?$/.exec(t);
+	if (!r) { return; }
+	const startColFixed = Boolean(r[1]);
+	const startCol = parseCol(r[2]);
+	const startRowFixed = Boolean(r[3]);
+	const startRow = Number(t[4]) - 1;
+	let many = false;
+	let endColFixed = startColFixed;
+	let endCol = startCol;
+	let endRowFixed = startRowFixed;
+	let endRow = startRow;
+	if (r[6]) {
+		endColFixed = Boolean(r[5]);
+		endCol = parseCol(r[6]);
+		endRowFixed = Boolean(r[7]);
+		endRow = Number(t[8]) - 1;
+
+	}
+	return {
+		startColFixed, startCol, startRowFixed, startRow,
+		endColFixed, endCol, endRowFixed, endRow,
+		many,
+	};
+}
+function stringRange({
+	startColFixed, startCol, startRowFixed, startRow,
+	endColFixed, endCol, endRowFixed, endRow,
+	many,
+}: XlsxRange) {
+	const t = [
+		[
+			startColFixed ? '$' : '',
+			toCol(startCol),
+			startRowFixed ? '$' : '',
+			startRow - 1,
+		].join(''),
+	];
+	if (many
+		|| startColFixed !== endColFixed
+		|| startCol !== endCol
+		|| startRowFixed !== endRowFixed
+		|| startRow !== endRow
+	) {
+		t.push([
+			endColFixed ? '$' : '',
+			toCol(endCol),
+			endRowFixed ? '$' : '',
+			endRow - 1,
+		].join(''));
+	}
+	return t.join(':');
+}
+function transpose<T>(value: T[][]): T[][] {
+	const inlineMax = value.reduce((max, v) => Math.max(v.length, max), 1);
+	const result: T[][] = Array(inlineMax).fill(value.length).map(v => Array(v).fill(null));
+	for (let i = 0; i < value.length; i++) {
+		const line = value[i];
+		for (let j = 0; j < line.length; j++) {
+			result[j][i] = line[j];
+		}
+	}
+	return result;
+}
+const nameCellRegex = /^=([A-Z]+(?:\.[A-Z\d_]+)+)$/i;
+const rangeRegex = /^(\$?[A-Z]+\$?\d+(?::\$?[A-Z]+\$?\d+)?)$/i;
+function getShowValue(v: any): string | boolean | bigint | string {
+	if (v && typeof v === 'object') {
+		for (const k of ['_value', '_text', 'value', 'text']) {
+			const r = v[k];
+			if (['number', 'boolean', 'bigint', 'string'].includes(typeof r)) {
+				// eslint-disable-next-line no-param-reassign
+				v = r;
+				break;
+			}
+		}
+	}
+	if (v && typeof v === 'object') { return String(v); }
+	if (['number', 'boolean', 'bigint', 'string'].includes(typeof v)) { return v; }
+	return '';
+
+}
 function replace(
 	value: string,
 	replaceName: (t: string) => any,
 	replaceReference: (s: number, e: number) => [number, number] | undefined | null,
+	transposition = false,
 ) {
 	if (typeof value !== 'string' || value[0] !== '=') { return value; }
+
+	const path = nameCellRegex.exec(value)?.[1];
+	if (path && !rangeRegex.test(path)) {
+		const value = getShowValue(replaceName(path));
+		if (typeof value !== 'string') { return value; }
+		if (!value) { return value; }
+		if (!'=!-+\''.includes(value[0])) { return value; }
+		return `="${value.replace(/"/g, '""')}"`;
+	}
 
 	// eslint-disable-next-line vue/max-len
 	return value.replace(/"(?:[^"]|"")*"|(?<!:|\d)(\$?[A-Z]+\$?\d+(?::\$?[A-Z]+\$?\d+)?)(?![\dA-Z]|:)|([A-Z]+(?:\.[A-Z\d_]+)+)/ig, (_, r, n) => {
 		if (n) {
-			let v = replaceName(n);
-			if (v && typeof v === 'object') {
-				for (const k of ['_value', '_text', 'value', 'text']) {
-					const r = v[k];
-					if (['number', 'boolean', 'bigint', 'string'].includes(typeof r)) {
-						v = r;
-						break;
-					}
-				}
-			}
-			if (v && typeof v === 'object') { v = String(v); }
-			if (['number', 'boolean', 'bigint'].includes(typeof v)) { return String(v); }
-			if (typeof v === 'string') { return `"${v.replace(/"/g, '""')}"`; }
-			return '""';
+			const v = getShowValue(replaceName(n));
+			return typeof v === 'string' ? `"${v.replace(/"/g, '""')}"` : String(v);
 		}
 		if (!r) { return _; }
-		const t = /^(\$?[A-Z]+\$?)(\d+)(?::(\$?[A-Z]+\$?)(\d+))?$/i.exec(r);
-		if (!t) { return _; }
-		let b = Number(t[2]) - 1;
-		let e = Number(t[4] || t[2]) - 1;
+		const tt = parseRange(r);
+		if (!tt) { return _; }
+		let [b, e] = transposition
+			? [tt.startCol, tt.endCol]
+			: [tt.startRow, tt.endRow];
 		const reversed = b > e;
 		if (reversed) { [b, e] = [e, b]; }
-
 		const v = replaceReference(b, e);
 		if (!v) { return r; }
-		if (v[0] === v[1] && !t[3]) {
-			return `${t[1]}${v[0] + 1}`;
+		if (transposition) {
+			if (reversed) {
+				[tt.endCol, tt.startCol] = v;
+			} else {
+				[tt.startCol, tt.endCol] = v;
+			}
+		} else if (reversed) {
+			[tt.endRow, tt.startRow] = v;
+		} else {
+			[tt.startRow, tt.endRow] = v;
 		}
-		if (reversed) {
-			return `${t[1]}${v[1] + 1}:${t[3] || t[1]}${v[0] + 1}`;
-		}
-		return `${t[1]}${v[0] + 1}:${t[3] || t[1]}${v[1] + 1}`;
-
+		return stringRange(tt);
 	});
 }
 
@@ -135,7 +265,7 @@ function run(rows: any[], fieldArea: [number, number, field: string][]) {
 					continue;
 				}
 				delete value[f];
-				for (let i = s; i < e; i++) {
+				for (let i = s; i <= e; i++) {
 					mask.add(i);
 				}
 			}
@@ -143,15 +273,87 @@ function run(rows: any[], fieldArea: [number, number, field: string][]) {
 		}
 	}
 	return {rowData, group};
+}
+
+
+function getInputMap(
+	dataRows: any[][],
+	rowData: [object, Set<number>][],
+	start: number,
+	end: number,
+	inlineMax: number,
+	fieldArea: [number, number, field: string][],
+	transposition,
+) {
+	/** 数据行的行数 */
+	const length = end - start + 1;
+	const fieldMap: string[] = [];
+	for (const [s, e, f] of fieldArea) {
+		for (let i = s; i <= e; i++) {
+			fieldMap[i] = f;
+		}
+	}
+	const inputMaps:(InputMap | undefined)[][] = [];
+	function set(map: InputMap, row: number, col: number) {
+		if (map.field === 'name') { return; }
+		if (!map.name) { return; }
+		const {value, subfield} = map;
+		if (subfield === 'name') { return; }
+		if (subfield && !map.subname) { return; }
+		if (value && typeof value === 'object') { return; }
+
+		if (transposition) {
+			// eslint-disable-next-line no-param-reassign
+			[row, col] = [col, row];
+		}
+		let r = inputMaps[row];
+		if (!r) {
+			inputMaps[row] = r = [];
+		}
+		r[col] = map;
+
+	}
+	for (const [k, [r, mask]] of rowData.entries()) {
+		if (!('name' in r)) { continue; }
+		const {name} = r as any;
+		const begin = start + k * length;
+		for (let col = 0; col < inlineMax; col++) {
+			if (mask.has(col)) { continue; }
+			for (const [p, line] of dataRows.entries()) {
+				const row = begin + p;
+				const expr = line[col];
+				if (typeof expr !== 'string' || expr[0] !== '=') { continue; }
+				const path = nameCellRegex.exec(expr)?.[1];
+				if (!path || rangeRegex.test(path)) { continue; }
+				const paths = path.split('.').filter(Boolean);
+				if (paths[0] !== 'data') { continue; }
+				const field = fieldMap[col];
+				if (!field) {
+					if (paths.length !== 2) { continue; }
+					const [, field] = paths;
+					set({name, field, value: r[field]}, row, col);
+					continue;
+				}
+				if (paths.length !== 3 || paths[1] !== field) { continue; }
+				const [,, subfield] = paths;
+				const subname = r[field]?.name;
+				set({name, field, subfield, subname, value: r[field]?.[subfield]}, row, col);
+			}
+		}
+	}
+	return inputMaps;
 
 }
+
 export default function render(
-	{ data, merged, heights, styles, borders, ...layout }: Template,
+	{ data, merged, heights, widths, styles, borders, ...layout }: Template,
 	dataArea: [number?, number?],
 	global: any,
 	rows: any[],
 	fieldArea: [number, number, field: string][] = [],
+	transposition = false,
 	minRow = 0,
+	needInputMap?: boolean,
 ): Template {
 	/** 开始行 */
 	const start = ((dataArea[0] || 1) - 1) <= 0 ? 0 : (dataArea[0] || 1) - 1;
@@ -171,6 +373,7 @@ export default function render(
 			value,
 			get.bind(null, { ...global }),
 			(s, e) => replaceCoord(s, e, start, end, tailOffset),
+			transposition,
 		);
 	}
 	function replaceRowData(value: string, data: any, k: number) {
@@ -178,30 +381,56 @@ export default function render(
 			value,
 			get.bind(null, { ...global, data }),
 			(s, e) => replaceDataCoord(s, e, start, end, tailOffset, k * length),
+			transposition,
 		);
 	}
-	const dataRows = data.slice(start, end + 1);
-	const colMax = dataRows.reduce((max, v) => Math.max(v.length, max), 1);
+
+	let newData = data;
+	if (transposition) { newData = transpose(newData); }
+	const dataRows = newData.slice(start, end + 1);
+	const inlineMax = dataRows.reduce((max, v) => Math.max(v.length, max), 1);
+
+	newData = [
+		...newData.slice(0, start).map(l => l.map(v => replaceData(v))),
+		...rowData.flatMap(([r, mask], k) =>
+			dataRows.map(l => l.map((v, i) => mask.has(i) ? null : replaceRowData(v, r, k))),
+		),
+		...Array(addLength).fill(0).map(() => Array(inlineMax).fill(null)),
+		...newData.slice(end + 1).map(l => l.map(v => replaceData(v))),
+	];
+	if (transposition) { newData = transpose(newData); }
+	let blockStart: 'row' | 'col' = 'row';
+	let blockSpan: 'rowspan' | 'colspan' = 'rowspan';
+	let inlineStart: 'row' | 'col' = 'col';
+	let inlineSpan: 'rowspan' | 'colspan' = 'colspan';
+	if (transposition) {
+		blockStart = 'col';
+		blockSpan = 'colspan';
+		inlineStart = 'row';
+		inlineSpan = 'rowspan';
+	}
 	const allMerged = merged.flatMap(m => {
-		const s = m.row;
-		const e = m.row + m.rowspan - 1;
+		const s = m[blockStart];
+		const e = s + m[blockSpan] - 1;
+		if (s === start && e === end) { return []; }
 		if (s >= start && e <= end) {
-			if (s === start && e === end) { return []; }
-			return Array(n).fill(0).map((_, index) => ({ ...m, row: m.row + length * index }));
+			return Array(n).fill(0).map((_, index) => ({
+				...m, [blockStart]: m[blockStart] + length * index,
+			}));
 		}
 		if (s <= start && e >= end) {
-			return { ...m, rowspan: m.rowspan + length * (n - 1) };
+			return { ...m, [blockSpan]: m[blockSpan] + length * (n - 1) };
 		}
 		if (s < end) { return m; }
-		return { ...m, row: m.row + length * (n - 1) };
+		return { ...m, [blockStart]: m[blockStart] + length * (n - 1) };
 
 	});
 	if (start === end) {
-		const area: {row: number, rowspan: number}[] = [];
-		const lineArea: {row: number, rowspan: number}[] = [];
+		const area: object[] = [];
+		const lineArea: object[] = [];
 		let nextStart = start;
 		for (const g of group) {
-			(g > 1 ? area : lineArea).push({row: nextStart, rowspan: g});
+			(g > 1 ? area : lineArea).push({[blockStart]: nextStart, [blockSpan]: g});
 			nextStart += g;
 		}
 		const mask = new Set<number>();
@@ -211,11 +440,11 @@ export default function render(
 			}
 		}
 		for (const m of merged) {
-			const s = m.row;
-			const e = s + m.rowspan - 1;
+			const s = m[blockStart];
+			const e = s + m[blockSpan] - 1;
 			if (s >= start && e <= end || s <= start && e >= end) {
-				const s = m.col;
-				const e = s + m.colspan - 1;
+				const s = m[inlineStart];
+				const e = s + m[inlineSpan] - 1;
 				for (let i = s; i <= e; i++) {
 					mask.add(i);
 				}
@@ -229,41 +458,53 @@ export default function render(
 				}
 			}
 		}
-		for (let i = 0; i < colMax; i++) {
+		for (let i = 0; i < inlineMax; i++) {
 			if (mask.has(i)) { continue; }
 			for (const a of area) {
-				allMerged.push({col: i, colspan: 1, ...a});
+				allMerged.push({col: i, colspan: 1, row: i, rowspan: 1, ...a});
 			}
 		}
 	} else {
 		for (const m of merged) {
-			const s = m.row;
-			const e = m.row + m.rowspan - 1;
+			const s = m[blockStart];
+			const e = s + m[blockSpan] - 1;
 			if (s === start && e === end) {
 				for (let i = 0; i < n; i++) {
-					allMerged.push({...m, row: m.row + length * i});
+					allMerged.push({...m, [blockStart]: m[blockStart] + length * i});
 				}
 			}
 		}
 
 	}
+
+	let newStyles = styles || [];
+	if (transposition) { newStyles = transpose(newStyles); }
+	newStyles= repeat(n, newStyles || [], start, end);
+	if (transposition) { newStyles = transpose(newStyles); }
+
+	const inputMap = needInputMap ? getInputMap(
+		dataRows,
+		rowData,
+		start,
+		end,
+		inlineMax,
+		fieldArea,
+		transposition,
+	) : undefined;
 	return {
 		...layout,
-		heights: repeat(n, heights || [], start, end),
+		widths: transposition ? repeat(n, widths || [], start, end) : widths,
+		heights:  transposition ? heights : repeat(n, heights || [], start, end),
 		styles: repeat(n, styles || [], start, end),
 		borders: borders?.flatMap((v): TemplateBorder | TemplateBorder[] => {
-			const {row} = v;
-			if (row < start) { return v; }
-			if (row > end) { return {...v, row: row + length * (n - 1)}; }
-			return Array(n).fill(v).map((_, i) => ({...v, row: row + length * i}));
+			const {[blockStart]:s} = v;
+			if (s < start) { return v; }
+			if (s > end) { return {...v, [blockStart]: s + length * (n - 1)}; }
+			return Array(n).fill(v).map((_, i) => ({...v, [blockStart]: s + length * i}));
 		}),
 		merged: allMerged,
-		data: [
-			...data.slice(0, start).map(l => l.map(v => replaceData(v))),
-			...rowData.flatMap(([r, mask], k) => dataRows.map(l => l.map((v, i) => mask.has(i) ? null : replaceRowData(v, r, k)))),
-			...Array(addLength).fill(0).map(() => Array(colMax).fill(null)),
-			...data.slice(end + 1).map(l => l.map(v => replaceData(v))),
-		],
+		data: newData,
+		inputMap,
 	};
 
 }

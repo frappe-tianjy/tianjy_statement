@@ -137,12 +137,14 @@ export default function create(el: HTMLElement, {
 	names,
 	readOnly,
 	inited,
+	inputMode: isInputMode,
 }: {
 	height: string;
 	formula?: HyperFormula;
 	name?: string;
 	names?: Record<string, string>;
 	readOnly?: boolean;
+	inputMode?: boolean,
 	inited?: () => void;
 }, cb?: (editor: XLSXEditor) => void): XLSXEditor {
 	el.style.overscrollBehavior = 'contain';
@@ -160,6 +162,10 @@ export default function create(el: HTMLElement, {
 			console.error(e, name, expression);
 		}
 	}
+	let inputMode = Boolean(isInputMode);
+
+
+	const disabled = () => readOnly || inputMode;
 
 	const table: Handsontable = new Handsontable(el, {
 		startRows: 8,
@@ -174,22 +180,22 @@ export default function create(el: HTMLElement, {
 				col_left: {},
 				col_right: {},
 			} : {
-				row_above: {},
-				row_below: {},
+				row_above: {disabled},
+				row_below: {disabled},
 				hr0: '---------' as any,
-				col_left: {},
-				col_right: {},
+				col_left: {disabled},
+				col_right: {disabled},
 				hr1: '---------' as any,
-				remove_row: {},
-				remove_col: {},
+				remove_row: {disabled},
+				remove_col: {disabled},
 				hr2: '---------' as any,
 				undo: {},
 				redo: {},
 				sp3: '---------' as any,
-				make_read_only: {},
+				make_read_only: {disabled},
 				hr3: '---------' as any,
-				alignment: {},
-				border: { name: '边框', submenu: { items: [
+				alignment: {disabled},
+				border: { disabled, name: '边框', submenu: { items: [
 					{ key: 'border:all', name: '全部', callback(key, selection, clickEvent) {
 						setBorder(this, selection, 'all');
 					}},
@@ -229,7 +235,7 @@ export default function create(el: HTMLElement, {
 						return '冻结到此处';
 					},
 					disabled() {
-						return !getStartRange(this);
+						return disabled() || !getStartRange(this);
 					},
 					callback(key, selection, clickEvent) {
 						const range = getStartRange(this);
@@ -252,8 +258,8 @@ export default function create(el: HTMLElement, {
 				copy: {},
 				cut: {},
 				hr6: '---------' as any,
-				mergeCells: {},
-				resumeEvaluation: { name:'重新计算', callback() {
+				mergeCells: {disabled},
+				resumeEvaluation: { disabled, name:'重新计算', callback() {
 					const formulas = this.getPlugin('formulas');
 					if (formulas.enabled) {
 						formulas.disablePlugin();
@@ -264,6 +270,7 @@ export default function create(el: HTMLElement, {
 					// this.render();
 				}},
 				formulasEnabled: {
+					disabled,
 					name() {
 						const formulas = this.getPlugin('formulas');
 						return formulas.enabled ? '显示公式' : '隐藏公式';
@@ -281,7 +288,7 @@ export default function create(el: HTMLElement, {
 						this.render();
 					},
 				},
-				'type':{ name:'类型', submenu:{ items:[ {
+				'type':{ disabled, name:'类型', submenu:{ items:[ {
 					key:'type:numeric', name:'数字',
 					callback(type, range){ setType(this, range, 'numeric'); },
 				}, {
@@ -291,8 +298,9 @@ export default function create(el: HTMLElement, {
 
 				hr7: '---------' as any,
 				style: {
+					disabled,
 					renderer() {
-						return rendererStyleMenu(table);
+						return rendererStyleMenu(table, disabled());
 					},
 					disableSelection: false,
 					isCommand: true,
@@ -392,6 +400,9 @@ export default function create(el: HTMLElement, {
 			sheetName = name;
 			engine.renameSheet(sheetId, sheetName);
 		},
+		getData() { return table.getData().map((v: any) => [...v as any]); },
+		get inputMode() { return inputMode; },
+		set inputMode(v) { inputMode = Boolean(v); },
 		get namedExpressions() { return namedExpressions; },
 		set namedExpressions(names) {
 			for (const name of Object.keys(namedExpressions)) {

@@ -92,9 +92,10 @@ frappe.ui.form.on('Tianjy Statement Configuration', {
 				const dataArea: [number, number] = [doc.start_row, doc.end_row];
 				const {name} = doc;
 				const quickFilters = doc.quick_filters;
+				const {transposition} = doc;
 				const fieldArea = toFieldArea(doc.areas);
 				frm.add_custom_button('Preview', () => {
-					preview(name, doctype, template, dataArea, fieldArea, quickFilters);
+					preview(name, doctype, template, dataArea, fieldArea, transposition, quickFilters);
 				});
 				const url = `/app/tianjy-statement/${doc.name}`;
 				frm.add_custom_button(`<a href="${url}">${__('查看')}</a>`, () => {
