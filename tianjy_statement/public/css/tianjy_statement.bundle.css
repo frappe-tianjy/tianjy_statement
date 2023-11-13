@@ -8,3 +8,12 @@
 	padding: 0px 5px;
 	margin: 5px 0px;
 }
+
+
+.ht_clone_inline_start.ht_clone_left.handsontable {
+	display: none;
+}
+
+.handsontable .ht_clone_inline_start thead, .handsontable .ht_master thead, .handsontable .ht_master tr th {
+	visibility: visible;
+}
