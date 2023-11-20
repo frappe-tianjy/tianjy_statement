@@ -222,10 +222,11 @@ export default function load(wrapper) {
 			for (const [k, v] of Object.entries(filterValues)) {
 				if (Array.isArray(v)) {
 					const [a, b] = v;
-					if (a !== b) { return; }
+					if (a !== b) { continue; }
 					value[k] = b;
 					continue;
 				}
+				value[k] = v;
 			}
 			try {
 				saving = true;
@@ -241,8 +242,9 @@ export default function load(wrapper) {
 		};
 		if (quickFilters.find(v => v.required)) {
 			// TODO: 样式
-			tipArea.style.position = 'ab';
-			body.appendChild(tipArea);
+			// tipArea.style.position = 'ab';
+			// body.appendChild(tipArea);
+			loading.hidden = true;
 		} else {
 			update({});
 		}
