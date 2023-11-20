@@ -21,14 +21,14 @@ function getObjValue(line: InputLine, cell: InputMap) {
 		return val;
 	}
 	const val = value[field] ?? null;
-	if (val === null || val === '') {
+	if (val === null || ['string', 'number', 'boolean', 'bigint'].includes(typeof val)) {
+		const value = val ?? '';
 		// eslint-disable-next-line no-return-assign
-		return value[field] = {value: '', label: ''};
+		return value[field] = {value, label: Boolean(value)};
 	}
 	if (typeof val !== 'object') { return; }
 	if (Array.isArray(val)) { return; }
 	return val;
-
 }
 
 
