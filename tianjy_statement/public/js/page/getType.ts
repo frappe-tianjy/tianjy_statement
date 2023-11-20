@@ -87,6 +87,7 @@ export default function getType(fields: any, line?: InputLine | null, cell?: Inp
 				no_spinner: true,
 				args: {
 					txt,
+					need_value: true,
 					doctype,
 					ignore_user_permissions: df.ignore_user_permissions,
 					reference_doctype: df.parent || '',
@@ -113,6 +114,7 @@ export default function getType(fields: any, line?: InputLine | null, cell?: Inp
 				no_spinner: true,
 				args: {
 					txt, doctype,
+					need_value: true,
 					ignore_user_permissions: df.ignore_user_permissions,
 					reference_doctype: df.parent || '',
 				},
