@@ -22,9 +22,9 @@ function getObjValue(line: InputLine, cell: InputMap) {
 	}
 	const val = value[field] ?? null;
 	if (val === null || ['string', 'number', 'boolean', 'bigint'].includes(typeof val)) {
-		const value = val ?? '';
+		const v = val ?? '';
 		// eslint-disable-next-line no-return-assign
-		return value[field] = {value, label: Boolean(value)};
+		return value[field] = {value: v, label: String(v)};
 	}
 	if (typeof val !== 'object') { return; }
 	if (Array.isArray(val)) { return; }
