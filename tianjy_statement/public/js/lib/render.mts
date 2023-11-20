@@ -1,4 +1,4 @@
-import type { Template, TemplateBorder } from '../types.mjs';
+import type { InputLine, Template, TemplateBorder } from '../types.mjs';
 import type { InputMap } from '../types.mjs';
 
 
@@ -114,7 +114,7 @@ const nameCellRegex = /^=([A-Z]+(?:\.[A-Z\d_]+)+)$/i;
 const rangeRegex = /^(\$?[A-Z]+\$?\d+(?::\$?[A-Z]+\$?\d+)?)$/i;
 function getShowValue(v: any): string | boolean | bigint | string {
 	if (v && typeof v === 'object') {
-		for (const k of ['_value', '_text', 'value', 'text']) {
+		for (const k of ['_value', '_text', 'label', 'value', 'text']) {
 			const r = v[k];
 			if (['number', 'boolean', 'bigint', 'string'].includes(typeof r)) {
 				// eslint-disable-next-line no-param-reassign
@@ -244,8 +244,10 @@ function get(value: any, keys: string) {
 
 }
 
+type RowData = [object, Set<number>, object, Record<string, object>, object, Record<string, object>]
+
 function run(rows: any[], fieldArea: [number, number, field: string][]) {
-	const rowData: [object, Set<number>][] = [];
+	const rowData: RowData[] = [];
 	const group: number[] = [];
 	for (const row of rows) {
 		const lengths = fieldArea.map(([s, e, f]) => {
@@ -256,12 +258,18 @@ function run(rows: any[], fieldArea: [number, number, field: string][]) {
 		});
 		const max = lengths.reduce((v, l) => Math.max(v, l[3]), 1);
 		group.push(max);
+		const cloned = structuredClone(row);
 		for (let i = 0; i < max; i++) {
-			const value = {...row};
+			const value = {...cloned};
 			const mask: Set<number> = new Set();
+			const subValues = {};
+			const cloneSubValues = {};
 			for (const [s, e, f, l] of lengths) {
 				if (l > i) {
-					value[f] = row[f][i];
+					const subValue = cloned[f][i];
+					value[f] = subValue;
+					cloneSubValues[f] = subValue;
+					subValues[f] = row[f][i];
 					continue;
 				}
 				delete value[f];
@@ -269,22 +277,59 @@ function run(rows: any[], fieldArea: [number, number, field: string][]) {
 					mask.add(i);
 				}
 			}
-			rowData.push([value, mask]);
+			rowData.push([value, mask, cloned, cloneSubValues, row, subValues]);
 		}
 	}
 	return {rowData, group};
 }
 
 
+function getInputFields(
+	dataRows: any[][],
+	fieldArea: [number, number, field: string][],
+) {
+	/** 数据行的行数 */
+	const fieldMap: string[] = [];
+	for (const [s, e, f] of fieldArea) {
+		for (let i = s; i <= e; i++) {
+			fieldMap[i] = f;
+		}
+	}
+	const inputFields: (string | [string, string] | undefined)[][] = [];
+	for (const [row, line] of dataRows.entries()) {
+		const r: (string | [string, string] | undefined)[] = inputFields[row] = [];
+		for (const [col, expr] of line.entries()) {
+			if (typeof expr !== 'string' || expr[0] !== '=') { continue; }
+			const path = nameCellRegex.exec(expr)?.[1];
+			if (!path || rangeRegex.test(path)) { continue; }
+			const paths = path.split('.').filter(Boolean);
+			if (paths[0] !== 'data') { continue; }
+			if (paths.includes('name')) { continue; }
+			const field = fieldMap[col];
+			if (!field) {
+				if (paths.length !== 2) { continue; }
+				const [, field] = paths;
+				r[col] = field;
+				continue;
+			}
+			if (paths.length !== 3 || paths[1] !== field) { continue; }
+			const [,, subfield] = paths;
+			r[col] = [field, subfield];
+		}
+	}
+	return inputFields;
+
+}
+
+
 function getInputMap(
 	dataRows: any[][],
-	rowData: [object, Set<number>][],
+	rowData: RowData[],
 	start: number,
 	end: number,
-	inlineMax: number,
 	fieldArea: [number, number, field: string][],
-	transposition,
 ) {
+	const inputFields = getInputFields(dataRows, fieldArea);
 	/** 数据行的行数 */
 	const length = end - start + 1;
 	const fieldMap: string[] = [];
@@ -293,51 +338,27 @@ function getInputMap(
 			fieldMap[i] = f;
 		}
 	}
-	const inputMaps:(InputMap | undefined)[][] = [];
-	function set(map: InputMap, row: number, col: number) {
-		if (map.field === 'name') { return; }
-		if (!map.name) { return; }
-		const {value, subfield} = map;
-		if (subfield === 'name') { return; }
-		if (subfield && !map.subname) { return; }
-		if (value && typeof value === 'object') { return; }
-
-		if (transposition) {
-			// eslint-disable-next-line no-param-reassign
-			[row, col] = [col, row];
-		}
-		let r = inputMaps[row];
-		if (!r) {
-			inputMaps[row] = r = [];
-		}
-		r[col] = map;
-
-	}
-	for (const [k, [r, mask]] of rowData.entries()) {
+	const inputMaps: InputLine[] = [];
+	for (const [k, [r, mask, value, values, originalValue, originalValues]] of rowData.entries()) {
 		if (!('name' in r)) { continue; }
 		const {name} = r as any;
+		if (!name) { continue; }
 		const begin = start + k * length;
-		for (let col = 0; col < inlineMax; col++) {
-			if (mask.has(col)) { continue; }
-			for (const [p, line] of dataRows.entries()) {
-				const row = begin + p;
-				const expr = line[col];
-				if (typeof expr !== 'string' || expr[0] !== '=') { continue; }
-				const path = nameCellRegex.exec(expr)?.[1];
-				if (!path || rangeRegex.test(path)) { continue; }
-				const paths = path.split('.').filter(Boolean);
-				if (paths[0] !== 'data') { continue; }
-				const field = fieldMap[col];
-				if (!field) {
-					if (paths.length !== 2) { continue; }
-					const [, field] = paths;
-					set({name, field, value: r[field]}, row, col);
+		for (const [p, line] of inputFields.entries()) {
+			const row = begin + p;
+			const lineMap: InputLine = inputMaps[row] = {
+				cells: [], value, values, originalValue, originalValues,
+			};
+			for (const [col, cellField] of line.entries()) {
+				if (!cellField || mask.has(col)) { continue; }
+				if (typeof cellField === 'string') {
+					lineMap.cells[col] = {name, field: cellField, value: r[cellField]};
 					continue;
 				}
-				if (paths.length !== 3 || paths[1] !== field) { continue; }
-				const [,, subfield] = paths;
+				const [field, subfield] = cellField;
 				const subname = r[field]?.name;
-				set({name, field, subfield, subname, value: r[field]?.[subfield]}, row, col);
+				if (!subname) { continue; }
+				lineMap.cells[col] = {name, field, subfield, subname, value: r[field]?.[subfield]};
 			}
 		}
 	}
@@ -487,9 +508,7 @@ export default function render(
 		rowData,
 		start,
 		end,
-		inlineMax,
 		fieldArea,
-		transposition,
 	) : undefined;
 	return {
 		...layout,

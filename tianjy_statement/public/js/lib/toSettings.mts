@@ -29,6 +29,10 @@ function toSettingBorder(v?: BorderOptions) {
 }
 
 function getType(type?: string) {
+	if (typeof type === 'function') {
+		return { editor: type };
+
+	}
 	if (!type || !['text', 'numeric'].includes(type)) { return; }
 	return {
 		type,

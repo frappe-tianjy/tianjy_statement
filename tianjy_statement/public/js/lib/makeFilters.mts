@@ -21,12 +21,11 @@ export function getFilterValues(fields_dict: Record<string, frappe.ui.form.Contr
 		if (!value) { continue; }
 		filters[key] = value;
 	}
-	return filters
+	return filters;
 
 }
 
-export default function makeFilters(meta, parent, filters, update) {
-	const doctype_fields = meta.fields;
+export default function makeFilters(doctype_fields, parent, filters, update) {
 	parent.classList.add('tianjy_statement_filters');
 	const fields = new Map();
 
@@ -81,9 +80,9 @@ export default function makeFilters(meta, parent, filters, update) {
 		if (fieldtype === 'DateRange') {
 			const wrapper = f.wrapper as any;
 			wrapper.addEventListener('change', () => {
-				if (wrapper.value) { return } 
+				if (wrapper.value) { return; }
 				onchange();
-			})
+			});
 		}
 		f.refresh();
 		fields_dict[field] = f;

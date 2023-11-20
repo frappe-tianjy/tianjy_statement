@@ -56,7 +56,7 @@ export interface Template {
 	styles?: TemplateStyle[][];
 	freezeRow?: number;
 	freezeCol?: number;
-	inputMap?: (InputMap | undefined)[][];
+	inputMap?: (InputLine | undefined)[];
 }
 
 export interface Configuration {
@@ -74,4 +74,12 @@ export interface InputMap {
 	value: any;
 	subname?: string;
 	subfield?: string;
+}
+
+export interface InputLine {
+	cells: (InputMap | undefined | null)[];
+	value: object;
+	values: Record<string, object>;
+	originalValue: object;
+	originalValues: Record<string, object>;
 }

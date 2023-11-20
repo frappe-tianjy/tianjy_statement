@@ -60,7 +60,7 @@ export default async function preview(
 		if (destroyed || v !== k) { return; }
 		editor.value = render(template, dataArea, {ctx, method}, list, fieldArea, transposition);
 	};
-	make_standard_filters(meta, (dialog as any).fields_dict.filters.wrapper, ctx, update);
+	make_standard_filters(meta.fields, (dialog as any).fields_dict.filters.wrapper, ctx, update);
 	update({});
 	await hidden;
 	editor.destroy();

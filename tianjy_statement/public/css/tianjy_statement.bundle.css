@@ -17,3 +17,41 @@
 .handsontable .ht_clone_inline_start thead, .handsontable .ht_master thead, .handsontable .ht_master tr th {
 	visibility: visible;
 }
+
+.tianjy-ht-select-editor {
+	position: absolute;
+	z-index: 300
+}
+.tianjy-ht-select-editor input {
+	inline-size: 100%;
+	block-size: 100%;
+	box-sizing: border-box;
+}
+
+.tianjy-ht-select-editor ul {
+	position: fixed;
+	z-index: 999;
+	min-inline-size: 150px;
+	max-block-size: 300px;
+	overflow-y: auto;
+	box-sizing: border-box;
+	border: 1px solid #799bd2;
+	background-color: #f0f0f0;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.tianjy-ht-select-editor li {
+	color: #555;
+	padding-block: 2px;
+	padding-inline: 10px;
+	line-height: 1.5em;
+	min-height: 1.5em;
+	cursor: pointer;
+}
+
+.tianjy-ht-select-editor li:hover {
+	color: #fff;
+	background-color: #1e90ff;
+}
