@@ -18,10 +18,19 @@ import getSaveData from './getSaveData';
 import getType from './getType';
 
 
-function createButton(title: string, click: () => void) {
+function createButton(title: string, click: () => void, icon?: string) {
 	const button = document.createElement('button');
 	button.className = 'btn btn-default btn-sm';
-	button.appendChild(document.createTextNode(__(title)));
+	if (icon) {
+		button.innerHTML = frappe.utils.icon(icon);
+		button.title = __(title);
+		try {
+			$(button).tooltip({ delay: { show: 600, hide: 100 }, trigger: 'hover' });
+		} catch {}
+
+	} else {
+		button.appendChild(document.createTextNode(__(title)));
+	}
 	button.style.marginInlineEnd = '8px';
 	button.style.marginBlockEnd = 'auto';
 	button.addEventListener('click', click);
@@ -94,6 +103,8 @@ export default function load(wrapper) {
 		toolbar.style.background = '#FFF';
 		toolbar.style.padding = '8px';
 		const filterDiv = toolbar.appendChild(document.createElement('div'));
+		const editToolbar = toolbar.appendChild(document.createElement('div'));
+		const viewToolbar = toolbar.appendChild(document.createElement('div'));
 		filterDiv.style.flex = '1';
 		const body = main.insertBefore(document.createElement('div'), loading);
 		body.style.background = '#FFF';
@@ -114,7 +125,7 @@ export default function load(wrapper) {
 		let dataList = [];
 		let filterValues = {};
 		let createDoc = noop;
-		const creButton = toolbar.appendChild(createButton('Create', () => createDoc()));
+		const creButton = createButton('Create', () => createDoc(), 'add');
 		function switchCreateButtonHidden() {
 			if (dataList.length) {
 				creButton.disabled = true;
@@ -233,6 +244,7 @@ export default function load(wrapper) {
 			// tipArea.style.position = 'ab';
 			// body.appendChild(tipArea);
 			loading.hidden = true;
+			renderData();
 		} else {
 			update({});
 		}
@@ -254,33 +266,30 @@ export default function load(wrapper) {
 			}
 			update(getFilterValues(fields_dict));
 		};
-		const exportButton = toolbar.appendChild(createButton(
-			'Export',
-			() => exportXLSX(editor.readValue(true)),
-		));
-		const saveButton = toolbar.appendChild(createButton('Save', save));
-		const modeButton = toolbar.appendChild(createButton('录入', () => {
-			if (inputMap) {
-				inputMap = undefined;
-				modeButton.innerText = '录入';
-				saveButton.hidden = true;
-				exportButton.hidden = false;
-				creButton.hidden = true;
-			} else {
-				inputMap = [];
-				modeButton.innerText = '预览';
-				saveButton.hidden = false;
-				exportButton.hidden = true;
-				creButton.hidden = false;
-			}
+		editToolbar.hidden = true;
+		const toEdit = () => {
+			inputMap = [];
+			editToolbar.hidden = false;
+			viewToolbar.hidden = true;
 			renderData();
-		}));
-		creButton.hidden = true;
-		saveButton.hidden = true;
-		toolbar.appendChild(createButton(
-			'Refresh',
-			() => update(getFilterValues(fields_dict), true),
-		));
+		};
+		const toView = () => {
+			inputMap = undefined;
+			editToolbar.hidden = true;
+			viewToolbar.hidden = false;
+			renderData();
+		};
+		const refresh = () => update(getFilterValues(fields_dict), true);
+		const export2xlsx = () => exportXLSX(editor.readValue(true));
+		editToolbar.appendChild(creButton);
+		editToolbar.appendChild(createButton('预览', toView, 'view'));
+		editToolbar.appendChild(createButton('Refresh', refresh, 'refresh'));
+		editToolbar.appendChild(createButton('Save', save)).classList.add('btn-primary');
+
+
+		viewToolbar.appendChild(createButton('录入', toEdit, 'edit'));
+		viewToolbar.appendChild(createButton('Export', export2xlsx, 'upload'));
+		viewToolbar.appendChild(createButton('Refresh', refresh, 'refresh'));
 		destroy = () => {
 			if (destroyed) { return; }
 			destroyed = true;
