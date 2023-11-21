@@ -42,7 +42,7 @@ function getType(type?: string) {
 		dataType: type,
 	};
 }
-export default function toSettings(value: Template) {
+export default function toSettings(value: Template, readOnly?: boolean) {
 	const { data, merged, widths, heights, styles, freezeRow, freezeCol, borders } = value;
 	return {
 		data: data?.map(v => [...v]),
@@ -75,6 +75,7 @@ export default function toSettings(value: Template) {
 			renderer: customStylesRenderer,
 			editor: 'text',
 			...getType(s.type),
+			...readOnly ? {editor: false} : {},
 			readOnly: Boolean(s.readOnly),
 		} : {row, col})).filter((Boolean)) || [],
 	};

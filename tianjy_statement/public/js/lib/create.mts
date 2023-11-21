@@ -135,7 +135,7 @@ export default function create(el: HTMLElement, {
 	name,
 	height,
 	names,
-	readOnly,
+	readOnly: ro,
 	inited,
 	inputMode: isInputMode,
 }: {
@@ -165,6 +165,7 @@ export default function create(el: HTMLElement, {
 	let inputMode = Boolean(isInputMode);
 
 
+	let readOnly = Boolean(ro);
 	const disabled = () => readOnly || inputMode;
 
 	const table: Handsontable = new Handsontable(el, {
@@ -307,7 +308,6 @@ export default function create(el: HTMLElement, {
 				},
 			},
 		},
-		readOnly,
 		height,
 		copyPaste: true,
 		trimWhitespace: false,
@@ -318,6 +318,7 @@ export default function create(el: HTMLElement, {
 		language: 'zh-CN',
 		renderer: customStylesRenderer,
 		licenseKey: 'non-commercial-and-evaluation',
+		// @ts-ignore
 		formulas: { engine, sheetName },
 		afterInit: typeof inited === 'function' ? inited : undefined,
 		beforePaste: (data, coords) => {
@@ -347,6 +348,15 @@ export default function create(el: HTMLElement, {
 		formulas.enablePlugin();
 
 	}
+	function setValue(value: Template, ro?: boolean) {
+		const settings = toSettings(value, readOnly);
+		const sheetId = engine.getSheetId(sheetName);
+		if (typeof sheetId === 'number') {
+			engine.removeSheet(sheetId);
+		}
+		// @ts-ignore
+		table.updateSettings(settings);
+	}
 	const editor: XLSXEditor = {
 		destroy() {
 			if (destroyed) { return; }
@@ -357,16 +367,17 @@ export default function create(el: HTMLElement, {
 			engine.removeSheet(sheetId);
 
 		},
+		get readOnly() { return readOnly; },
 		get destroyed() { return destroyed; },
 		get value() { return readValue(table); },
 		set value(value) {
 			if (destroyed) { return; }
-			const settings = toSettings(value);
-			const sheetId = engine.getSheetId(sheetName);
-			if (typeof sheetId === 'number') {
-				engine.removeSheet(sheetId);
-			}
-			table.updateSettings(settings);
+			setValue(value);
+		},
+		setValue(value, ro) {
+			if (destroyed) { return; }
+			if (typeof ro === 'boolean') { readOnly = ro; }
+			setValue(value, ro);
 		},
 		get formulasEnabled() { return table.getPlugin('formulas').enabled; },
 		set formulasEnabled(v) {

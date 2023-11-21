@@ -5,8 +5,10 @@ export interface XLSXEditor {
 	value: Template;
 	name: string;
 	formulasEnabled: boolean;
-	readonly destroyed: boolean
-	readValue(hasValue?: boolean): Template
+	readonly destroyed: boolean;
+	readValue(hasValue?: boolean): Template;
+	setValue(value: Template, readOnly?: boolean);
+	readonly readOnly: boolean;
 	getData(): any[][];
 	inputMode: boolean;
 	namedExpressions: Record<string, string>;

@@ -6,7 +6,7 @@ import create from '../lib/create.mjs';
 import exportXLSX from '../lib/exportXLSX.mjs';
 import make_standard_filters, { getFilterValues } from '../lib/makeFilters.mjs';
 import toFieldArea from '../utils/toFieldArea.mts';
-import { InputLine } from '../types.mts';
+import { InputLine, TemplateStyle } from '../types.mts';
 
 import { get_template } from './get_template';
 import { getData } from './getData';
@@ -153,41 +153,29 @@ export default function load(wrapper) {
 			switchCreateButtonHidden();
 			editor.inputMode = Boolean(inputMap);
 			if (!inputMap) {
-				editor.value = d;
+				editor.setValue(d, true);
 				return;
 			}
 			const map = inputMap;
 			const {styles, data} = d;
-			if (styles) {
+			function getStyle(row: number, col: number, style?: TemplateStyle): TemplateStyle {
+				const [r, c] = transposition ? [col, row] : [row, col];
+				const line = map[r];
+				const cell = line?.cells[c];
+				const type = getType(dataFields, line, cell);
+				if (!type) {
+					if (cell) { line.cells[c] = null; }
+					return { ...style, readOnly: 1 };
+				}
+				if (type === true) { return { ...style, readOnly: undefined }; }
 				// @ts-ignore
-				d.styles = styles.map((line, row) => line.map((style, col) => {
-					const [r, c] = transposition ? [col, row] : [row, col];
-					const line = map[r];
-					const cell = line?.cells[c];
-					const type = getType(dataFields, line, cell);
-					if (!type) {
-						if (cell) { line.cells[c] = null; }
-						return { ...style, readOnly: 1 };
-					}
-					if (type === true) { return { ...style, readOnly: undefined }; }
-					return { ...style, type, readOnly: undefined };
-				}));
-			} else {
-				// @ts-ignore
-				d.styles = data.map((line, row) => line.map((_, col) => {
-					const [r, c] = transposition ? [col, row] : [row, col];
-					const line = map[r];
-					const cell = line?.cells[c];
-					const type = getType(dataFields, line, cell);
-					if (!type) {
-						if (cell) { line.cells[c] = null; }
-						return { readOnly: 1 };
-					}
-					if (type === true) { return { }; }
-					return { type, readOnly: undefined };
-				}));
+				return { ...style, type, readOnly: undefined };
+
 			}
-			editor.value = d;
+			d.styles = styles
+				? styles.map((l, r) => l.map((s, c) => getStyle(r, c, s)))
+				: data.map((l, r) => l.map((_, c) => getStyle(r, c)));
+			editor.setValue(d, false);
 		};
 		let k2 = 0;
 		const update = async (data: any, isRefresh = false) => {
