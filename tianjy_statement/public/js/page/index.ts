@@ -14,7 +14,7 @@ import { saveData } from './saveData';
 import { createData } from './createData';
 import { getNewName } from './getNewName';
 import { setPath } from './setPath';
-import getSaveData from './getSaveData';
+import getSaveData, { setModified } from './getSaveData';
 import getType from './getType';
 
 
@@ -39,34 +39,15 @@ function createButton(title: string, click: () => void, icon?: string) {
 
 
 const noop = () => {};
+// @ts-ignore
+const label= __('Tianjy Statement');
 
 export default function load(wrapper) {
-	// @ts-ignore
-	const label= __('Tianjy Statement');
-
-	const head = wrapper.appendChild(document.createElement('div'));
-	head.style.padding = '8px';
-	head.style.height = '75px';
-	head.style.display = 'flex';
-	head.style.alignItems = 'center';
-	head.className = 'title-area';
-	const h3 = head.appendChild(document.createElement('h3'));
-	h3.title = label;
-	h3.className = 'ellipsis title-text';
-	h3.style.margin = '0';
-	const title = h3.appendChild(document.createTextNode(label));
 
 
 	wrapper.style.display = 'flex';
 	wrapper.style.flexDirection = 'column';
 	wrapper.style.height = 'calc(100vh - 60px)';
-	const main: HTMLElement = wrapper.appendChild(document.createElement('div'));
-	main.style.background = '#FFF';
-	main.style.flex = '1';
-	main.style.display = 'flex';
-	main.style.flexDirection = 'column';
-	main.style.position = 'relative';
-	const loading = main.appendChild(document.createElement('tianjy-loading'));
 
 
 	let destroy = noop;
@@ -77,10 +58,37 @@ export default function load(wrapper) {
 		if (newName) { name = newName; }
 		if (!name) { return; }
 		setPath(name);
+		const head = wrapper.appendChild(document.createElement('div'));
+		head.style.padding = '8px';
+		head.style.height = '75px';
+		head.style.display = 'flex';
+		head.style.alignItems = 'center';
+		head.className = 'title-area';
+		const h3 = head.appendChild(document.createElement('h3'));
+		h3.title = label;
+		h3.className = 'ellipsis title-text';
+		h3.style.margin = '0';
+		const title = h3.appendChild(document.createTextNode(label));
+		const unsavedIndicator = head.appendChild(document.createElement('span'));
+		unsavedIndicator.hidden = true;
+		unsavedIndicator.className='indicator-pill whitespace-nowrap orange';
+		unsavedIndicator.appendChild(document.createTextNode(__('Not Saved')));
+
+		const main: HTMLElement = wrapper.appendChild(document.createElement('div'));
+		main.style.background = '#FFF';
+		main.style.flex = '1';
+		main.style.display = 'flex';
+		main.style.flexDirection = 'column';
+		main.style.position = 'relative';
+		const loading = main.appendChild(document.createElement('tianjy-loading'));
 		let destroyed = false;
 		let saving = false;
 		destroy();
-		destroy = () => { destroyed = true; };
+		destroy = () => {
+			destroyed = true;
+			head.remove();
+			main.remove();
+		};
 		loading.hidden = false;
 		const doc: any = await get_template(name);
 		if (destroyed) { return; }
@@ -149,6 +157,7 @@ export default function load(wrapper) {
 			}
 			creButton.disabled = false;
 		}
+		let modified: Record<string, any> = {};
 		const renderData = () => {
 			const d = render(
 				template,
@@ -160,11 +169,16 @@ export default function load(wrapper) {
 				0,
 				Boolean(inputMap),
 			);
+			modified = {};
+			unsavedIndicator.hidden = true;
+
 			({inputMap} = d);
 			switchCreateButtonHidden();
 			editor.inputMode = Boolean(inputMap);
 			if (!inputMap) {
 				editor.setValue(d, true);
+				editor.onChange = noop;
+				editor.onPaste = noop;
 				return;
 			}
 			const map = inputMap;
@@ -187,6 +201,59 @@ export default function load(wrapper) {
 				? styles.map((l, r) => l.map((s, c) => getStyle(r, c, s)))
 				: data.map((l, r) => l.map((_, c) => getStyle(r, c)));
 			editor.setValue(d, false);
+			editor.onChange = list => {
+				let unsaved = false;
+				for (const [row, col, , data] of list) {
+					const [r, c] = transposition ? [col, row] : [row, col];
+					const line = map[r];
+					if (!line) { continue; }
+					const cell = line.cells[c];
+					if (!cell) { continue; }
+					if (setModified(modified, data, line, cell)) {
+						unsaved = true;
+					}
+
+				}
+				if (unsaved) {
+					unsavedIndicator.hidden = false;
+				}
+			};
+			editor.onPaste = async (_, coords) => {
+				if (saving) { return; }
+				saving = true;
+				loading.hidden = false;
+				const data = editor.getData();
+				let unsaved = false;
+				try {
+					for (const {startCol, startRow, endCol, endRow} of coords) {
+						for (let row = startRow; row <= endRow; row++) {
+							for (let col = startCol; col <= endCol; col++) {
+								const [r, c] = transposition ? [col, row] : [row, col];
+								const line = map[r];
+								if (!line) { continue; }
+								const cell = line.cells[c];
+								if (!cell) { continue; }
+								const {update} = cell;
+								if (!update) { continue; }
+								const value = data?.[row]?.[col];
+								const s = await update(value);
+								if (s === null) { continue; }
+								// TODO: 将s存入上下文
+								if (setModified(modified, s, line, cell)) {
+									unsaved = true;
+								}
+							}
+						}
+					}
+				} finally {
+					loading.hidden = true;
+					saving = false;
+					if (unsaved) {
+						unsavedIndicator.hidden = false;
+					}
+
+				}
+			};
 		};
 		let k2 = 0;
 		const update = async (data: any, isRefresh = false) => {
@@ -252,14 +319,18 @@ export default function load(wrapper) {
 			if (destroyed) { return; }
 			if (!inputMap) { return; }
 			if (saving) { return; }
-			const data = editor.getData();
-			const res = getSaveData(inputMap, data, transposition);
-			if (!res) { return; }
+			if (unsavedIndicator.hidden) {
+				frappe.show_alert({message: __('No changes in document'), indicator: 'orange'});
+				return;
+			}
 			try {
 				saving = true;
 				loading.hidden = false;
-				await saveData(docname, res);
+				await saveData(docname, modified);
 				if (destroyed) { return; }
+				modified = {};
+				unsavedIndicator.hidden = true;
+				frappe.show_alert({message: __('Saved'), indicator: 'green'});
 			} finally {
 				loading.hidden = true;
 				saving = false;
@@ -294,8 +365,8 @@ export default function load(wrapper) {
 			if (destroyed) { return; }
 			destroyed = true;
 			editor.destroy();
-			body.remove();
-			toolbar.remove();
+			head.remove();
+			main.remove();
 		};
 	}
 	$(wrapper).on('show', () => show(false));

@@ -48,6 +48,14 @@ function merge_duplicates(results) {
 	}, []);
 	// returns [{value: 'Manufacturer 1', 'description': 'mobile part 1, mobile part 2'}]
 }
+const noop = () => {};
+function createValueListen(): [
+	(listener: (v: string) => Promise<string | null>) => void,
+	(v: string) => Promise<string | null>,
+	] {
+	let fn: (value: any) => any = noop;
+	return [(f: any) => { fn = f; }, (value: any) => fn(value)];
+}
 
 export default function getType(fields: any, line?: InputLine | null, cell?: InputMap | null) {
 	if (!line) { return; }
@@ -64,9 +72,11 @@ export default function getType(fields: any, line?: InputLine | null, cell?: Inp
 		if (!val) { return; }
 		const options = df.options?.split('\n').filter(Boolean);
 		if (!options?.length) { return; }
-		return createSelect(val, options, df.reqd);
+		const [addValueListener, update] = createValueListen();
+		cell.update = update;
+		return createSelect(val, options, {required: df.reqd, addValueListener});
 	}
-	if (df.fieldtype === 'Link' || df.fieldtype === 'Tianjy Related Link') {
+	if (['Tree Select', 'Link', 'Tianjy Related Link'].includes(df.fieldtype)) {
 		const val = getObjValue(line, cell);
 		if (!val) { return; }
 		const filterOptions = parseOptions(df.options);
@@ -80,7 +90,9 @@ export default function getType(fields: any, line?: InputLine | null, cell?: Inp
 			return val;
 		} : () => null;
 		const {doctype, filters} = filterOptions;
-		return createSelect(val, [{...val}], df.reqd, async txt => {
+		const [addValueListener, update] = createValueListen();
+		cell.update = update;
+		return createSelect(val, [{...val}], {required: df.reqd, loadOptions: async txt => {
 			const {results} = await frappe.call({
 				type: 'POST',
 				method: 'frappe.desk.search.search_link',
@@ -95,7 +107,7 @@ export default function getType(fields: any, line?: InputLine | null, cell?: Inp
 				},
 			});
 			return merge_duplicates(results);
-		});
+		}, addValueListener});
 	}
 	if (df.fieldtype === 'Dynamic Link') {
 		const val = getObjValue(line, cell);
@@ -104,7 +116,9 @@ export default function getType(fields: any, line?: InputLine | null, cell?: Inp
 		if (!field) { return; }
 		const data = subfield ? values[subfield] : value;
 		if (!(typeof data === 'object' && data)) { return; }
-		return createSelect(val, [{...val}], df.reqd, async txt => {
+		const [addValueListener, update] = createValueListen();
+		cell.update = update;
+		return createSelect(val, [{...val}], {required: df.reqd, loadOptions: async txt => {
 			const val = field in data ? data[field] ?? null : null;
 			const doctype = typeof val === 'object' && val ? val.value : val;
 			if (!doctype) { return; }
@@ -120,7 +134,7 @@ export default function getType(fields: any, line?: InputLine | null, cell?: Inp
 				},
 			});
 			return merge_duplicates(results);
-		});
+		}, addValueListener});
 	}
 	if (df.fieldtype === 'Tianjy Enumeration') {
 		const val = getObjValue(line, cell);
@@ -137,7 +151,9 @@ export default function getType(fields: any, line?: InputLine | null, cell?: Inp
 			if (typeof val === 'object' && val) { return val.value; }
 			return val;
 		} : () => null;
-		return createSelect(val, [{...val}], df.reqd, async txt => {
+		const [addValueListener, update] = createValueListen();
+		cell.update = update;
+		return createSelect(val, [{...val}], {required: df.reqd, loadOptions:async txt => {
 			let enumParent;
 			if (enumFiled) {
 				enumParent = getFieldValue(enumFiled);
@@ -150,7 +166,7 @@ export default function getType(fields: any, line?: InputLine | null, cell?: Inp
 				args: { parent: enumParent, type: enumType },
 			});
 			return message;
-		}, true);
+		}, addValueListener, noFilter: true});
 
 	}
 	if (typeof val !== 'object') { return true; }
