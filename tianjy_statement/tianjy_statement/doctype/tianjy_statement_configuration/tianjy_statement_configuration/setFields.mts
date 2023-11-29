@@ -9,7 +9,7 @@ function getDataFields(doc_type) {
 			label: `${__(d.label || d.fieldname)} (${d.fieldname})`,
 		}));
 	for (const field of fields) {
-		if (field.fieldtype !== 'Table') { continue; }
+		if (!frappe.model.table_fields.includes(field.fieldtype)) { continue; }
 		const fields = frappe.get_meta(field.options)?.fields;
 		if (!fields) { continue; }
 		const {fieldname} = field;

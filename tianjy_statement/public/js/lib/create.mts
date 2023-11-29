@@ -1,5 +1,6 @@
 import Handsontable from 'handsontable';
 import HyperFormula from 'hyperformula';
+import type { RangeType } from 'handsontable/common';
 
 import type { Template, XLSXEditor } from '../types.mjs';
 
@@ -129,13 +130,14 @@ function setType(
 	table.render();
 }
 
+const noop = () => {};
 
 export default function create(el: HTMLElement, {
 	formula: formulaEngine,
 	name,
 	height,
 	names,
-	readOnly,
+	readOnly: ro,
 	inited,
 	inputMode: isInputMode,
 }: {
@@ -165,7 +167,11 @@ export default function create(el: HTMLElement, {
 	let inputMode = Boolean(isInputMode);
 
 
+	let readOnly = Boolean(ro);
 	const disabled = () => readOnly || inputMode;
+
+	let onChange: (changed: [number, number, any, any][]) => void = noop;
+	let onPaste: (data: any[][], coords: RangeType[]) => void = noop;
 
 	const table: Handsontable = new Handsontable(el, {
 		startRows: 8,
@@ -307,7 +313,6 @@ export default function create(el: HTMLElement, {
 				},
 			},
 		},
-		readOnly,
 		height,
 		copyPaste: true,
 		trimWhitespace: false,
@@ -318,9 +323,15 @@ export default function create(el: HTMLElement, {
 		language: 'zh-CN',
 		renderer: customStylesRenderer,
 		licenseKey: 'non-commercial-and-evaluation',
+		// @ts-ignore
 		formulas: { engine, sheetName },
 		afterInit: typeof inited === 'function' ? inited : undefined,
 		beforePaste: (data, coords) => {
+			if (readOnly) {
+				data.length = 0;
+				coords.length = 0;
+				return;
+			}
 			for (const d of data) {
 				for (let i = 0; i < d.length; i++) {
 					const value = d[i];
@@ -331,6 +342,13 @@ export default function create(el: HTMLElement, {
 					d[i] = n;
 				}
 			}
+		},
+		afterPaste(data, coords) {
+			onPaste(data, coords);
+		},
+		afterChange(changes, source) {
+			if (!changes?.length) { return; }
+			onChange(changes as any);
 		},
 	});
 	let destroyed = false;
@@ -347,6 +365,18 @@ export default function create(el: HTMLElement, {
 		formulas.enablePlugin();
 
 	}
+	function setValue(value: Template, ro?: boolean) {
+		const old = onChange;
+		onChange = noop;
+		const settings = toSettings(value, readOnly);
+		const sheetId = engine.getSheetId(sheetName);
+		if (typeof sheetId === 'number') {
+			engine.removeSheet(sheetId);
+		}
+		// @ts-ignore
+		table.updateSettings(settings);
+		onChange = old;
+	}
 	const editor: XLSXEditor = {
 		destroy() {
 			if (destroyed) { return; }
@@ -357,16 +387,17 @@ export default function create(el: HTMLElement, {
 			engine.removeSheet(sheetId);
 
 		},
+		get readOnly() { return readOnly; },
 		get destroyed() { return destroyed; },
 		get value() { return readValue(table); },
 		set value(value) {
 			if (destroyed) { return; }
-			const settings = toSettings(value);
-			const sheetId = engine.getSheetId(sheetName);
-			if (typeof sheetId === 'number') {
-				engine.removeSheet(sheetId);
-			}
-			table.updateSettings(settings);
+			setValue(value);
+		},
+		setValue(value, ro) {
+			if (destroyed) { return; }
+			if (typeof ro === 'boolean') { readOnly = ro; }
+			setValue(value, ro);
 		},
 		get formulasEnabled() { return table.getPlugin('formulas').enabled; },
 		set formulasEnabled(v) {
@@ -400,6 +431,11 @@ export default function create(el: HTMLElement, {
 			sheetName = name;
 			engine.renameSheet(sheetId, sheetName);
 		},
+		get onChange() { return onChange; },
+		set onChange(o) { onChange = o; },
+		get onPaste() { return onPaste; },
+		set onPaste(o) { onPaste = o; },
+
 		getData() { return table.getData().map((v: any) => [...v as any]); },
 		get inputMode() { return inputMode; },
 		set inputMode(v) { inputMode = Boolean(v); },

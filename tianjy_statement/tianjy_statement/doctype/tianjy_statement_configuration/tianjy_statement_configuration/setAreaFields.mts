@@ -1,3 +1,4 @@
+
 export default async function setAreaFields(frm: frappe.ui.form.Form) {
 	// get the doctype to update fields
 	const doc = frm.doc as any;
@@ -5,7 +6,8 @@ export default async function setAreaFields(frm: frappe.ui.form.Form) {
 	const fieldValues = new Set(doc.fields?.map(v => v.field || '')
 		.filter(v => v.includes('.')).map(v => v.split('.')[0]) || []);
 	const fields = frappe.get_meta(doc.doc_type)?.fields
-		.filter(d => d.fieldtype === 'Table' && fieldValues.has(d.fieldname))
+		.filter(d => frappe.model.table_fields.includes(d.fieldtype)
+		&& fieldValues.has(d.fieldname))
 		.map(d => ({
 			value: d.fieldname,
 			label: `${__(d.label || d.fieldname)} (${d.fieldname})`,

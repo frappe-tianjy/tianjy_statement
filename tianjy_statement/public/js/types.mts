@@ -1,3 +1,4 @@
+import type { RangeType } from 'handsontable/common';
 import type { DetailedSettings as MergeCellDetail } from 'handsontable/plugins/mergeCells';
 
 export interface XLSXEditor {
@@ -5,9 +6,13 @@ export interface XLSXEditor {
 	value: Template;
 	name: string;
 	formulasEnabled: boolean;
-	readonly destroyed: boolean
-	readValue(hasValue?: boolean): Template
+	readonly destroyed: boolean;
+	readValue(hasValue?: boolean): Template;
+	setValue(value: Template, readOnly?: boolean);
+	readonly readOnly: boolean;
 	getData(): any[][];
+	onChange: (changed: [number, number, any, any][]) => void;
+	onPaste: (data: any[][], coords: RangeType[]) => void;
 	inputMode: boolean;
 	namedExpressions: Record<string, string>;
 }
@@ -56,7 +61,7 @@ export interface Template {
 	styles?: TemplateStyle[][];
 	freezeRow?: number;
 	freezeCol?: number;
-	inputMap?: (InputMap | undefined)[][];
+	inputMap?: (InputLine | undefined)[];
 }
 
 export interface Configuration {
@@ -74,4 +79,13 @@ export interface InputMap {
 	value: any;
 	subname?: string;
 	subfield?: string;
+	update?:(data: any) => any;
+}
+
+export interface InputLine {
+	cells: (InputMap | undefined | null)[];
+	value: object;
+	values: Record<string, object>;
+	originalValue: object;
+	originalValues: Record<string, object>;
 }
