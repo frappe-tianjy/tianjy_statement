@@ -81,7 +81,7 @@ export default function getType(fields: any, line?: InputLine | null, cell?: Inp
 		if (!val) { return; }
 		const filterOptions = parseOptions(df.options);
 		if (!filterOptions) { return; }
-		const data = subfield ? values[subfield] : value;
+		const data = subfield ? values[field] : value;
 		if (!(typeof data === 'object' && data)) { return; }
 		/** @type {(f: string) => any} */
 		const getFieldValue = typeof data === 'object' && data ? f => {
@@ -114,7 +114,7 @@ export default function getType(fields: any, line?: InputLine | null, cell?: Inp
 		if (!val) { return; }
 		const field = df.options;
 		if (!field) { return; }
-		const data = subfield ? values[subfield] : value;
+		const data = subfield ? values[field] : value;
 		if (!(typeof data === 'object' && data)) { return; }
 		const [addValueListener, update] = createValueListen();
 		cell.update = update;
@@ -143,7 +143,7 @@ export default function getType(fields: any, line?: InputLine | null, cell?: Inp
 		if (!options || typeof options !== 'string') { return; }
 		const [enumType, enumFiled] = options.split(/\s*:\s*/, 2);
 		if (!enumType) { return; }
-		const data = subfield ? values[subfield] : value;
+		const data = subfield ? values[field] : value;
 		if (!(typeof data === 'object' && data)) { return; }
 		/** @type {(f: string) => any} */
 		const getFieldValue = typeof data === 'object' && data ? f => {
