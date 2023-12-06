@@ -1,5 +1,6 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from typing import Any
+from .utils import datetime_to_obj
 import frappe
 from frappe import _
 from frappe.model.meta import Meta
@@ -33,6 +34,16 @@ def query(meta: Meta, fields: set[str], filters, or_filters, order_by):
 		docField = docFields[0] if docFields else None
 		if not docField: continue;
 		fieldtype = docField.fieldtype
+		if fieldtype in ('Date', 'Datetime', 'Guigu Date'):
+			for value in values:
+				if v:= value[field]:
+					if isinstance(v, str):
+						v = datetime.strptime(v, '%Y-%m-%d')
+					elif isinstance(v, date):
+						v = datetime(v.year, v.month, v.day)
+					if isinstance(v, datetime):
+						value[field] = datetime_to_obj(v, docField.options)
+			continue
 		if fieldtype == 'Select':
 			for v in values:
 				if k:= v[field]: v[field] = {'value': k, 'label': _(k)}
@@ -184,14 +195,22 @@ def get_date_range_text(start, end):
 def get_ctx(meta, ctx):
 	linkOptions = {f.fieldname: f.options for f in meta.fields if f.fieldtype in ['Link', 'Tree Select']}
 	dateFields = [f.fieldname for f in meta.fields if f.fieldtype in ['Date', 'Datetime']]
+	base_date_fields = {f.fieldname: f.options for f in meta.fields if f.fieldtype in ['Guigu Date']}
 	def get(value, k):
 		if not value: return value
+		if k in base_date_fields:
+			if not isinstance(value, str): return value
+			return datetime_to_obj(datetime.strptime(value, '%Y-%m-%d'), base_date_fields[k])
 		if k in dateFields:
 			if not isinstance(value, list):
 				return value
 			start=value[0]
 			end=value[1]
-			return dict(start=start, end=end, _text=get_date_range_text(start, end))
+			return dict(
+				start=datetime_to_obj(datetime.strptime(start, '%Y-%m-%d')),
+				end=datetime_to_obj(datetime.strptime(end, '%Y-%m-%d')),
+				_text=get_date_range_text(start, end),
+			)
 		doctype = linkOptions.get(k, None)
 		if not doctype: return value
 		meta = frappe.get_meta(doctype)
