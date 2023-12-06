@@ -1,5 +1,4 @@
 import type { InputLine, Template, TemplateBorder } from '../types.mjs';
-import type { InputMap } from '../types.mjs';
 
 
 interface XlsxRange {
@@ -244,40 +243,56 @@ function get(value: any, keys: string) {
 
 }
 
-type RowData = [object, Set<number>, object, Record<string, object>, object, Record<string, object>]
+type RowData = {
+	data: object;
+	mask: Set<number>;
+	value: object;
+	values: Record<string, object>;
+	originalValue: object;
+	originalValues: Record<string, object>;
+	index: Record<string, number>;
+}
 
 function run(rows: any[], fieldArea: [number, number, field: string][]) {
 	const rowData: RowData[] = [];
 	const group: number[] = [];
-	for (const row of rows) {
+	for (const [index, originalValue] of rows.entries()) {
 		const lengths = fieldArea.map(([s, e, f]) => {
-			const list = row[f];
+			const list = originalValue[f];
 			return [
 				s, e, f, Array.isArray(list) ? list.length : 0,
 			] as [number, number, field: string, number];
 		});
 		const max = lengths.reduce((v, l) => Math.max(v, l[3]), 1);
 		group.push(max);
-		const cloned = structuredClone(row);
+		const value = structuredClone(originalValue);
 		for (let i = 0; i < max; i++) {
-			const value = {...cloned};
+			const data = {...value};
 			const mask: Set<number> = new Set();
-			const subValues = {};
-			const cloneSubValues = {};
+			const originalValues = {};
+			const values = {};
 			for (const [s, e, f, l] of lengths) {
 				if (l > i) {
-					const subValue = cloned[f][i];
-					value[f] = subValue;
-					cloneSubValues[f] = subValue;
-					subValues[f] = row[f][i];
+					const subValue = value[f][i];
+					data[f] = subValue;
+					values[f] = subValue;
+					originalValues[f] = originalValue[f][i];
 					continue;
 				}
-				delete value[f];
+				delete data[f];
 				for (let i = s; i <= e; i++) {
 					mask.add(i);
 				}
 			}
-			rowData.push([value, mask, cloned, cloneSubValues, row, subValues]);
+			rowData.push({
+				index: {row: rowData.length + 1, data: index + 1, sub: i + 1},
+				data,
+				mask,
+				value,
+				values,
+				originalValue,
+				originalValues,
+			});
 		}
 	}
 	return {rowData, group};
@@ -339,9 +354,11 @@ function getInputMap(
 		}
 	}
 	const inputMaps: InputLine[] = [];
-	for (const [k, [r, mask, value, values, originalValue, originalValues]] of rowData.entries()) {
-		if (!('name' in r)) { continue; }
-		const {name} = r as any;
+	for (const [k, {
+		data, mask, value, values, originalValue, originalValues,
+	}] of rowData.entries()) {
+		if (!('name' in data)) { continue; }
+		const {name} = data as any;
 		if (!name) { continue; }
 		const begin = start + k * length;
 		for (const [p, line] of inputFields.entries()) {
@@ -352,13 +369,19 @@ function getInputMap(
 			for (const [col, cellField] of line.entries()) {
 				if (!cellField || mask.has(col)) { continue; }
 				if (typeof cellField === 'string') {
-					lineMap.cells[col] = {name, field: cellField, value: r[cellField]};
+					lineMap.cells[col] = {name, field: cellField, value: data[cellField]};
 					continue;
 				}
 				const [field, subfield] = cellField;
-				const subname = r[field]?.name;
+				const subname = data[field]?.name;
 				if (!subname) { continue; }
-				lineMap.cells[col] = {name, field, subfield, subname, value: r[field]?.[subfield]};
+				lineMap.cells[col] = {
+					name,
+					field,
+					subfield,
+					subname,
+					value: data[field]?.[subfield],
+				};
 			}
 		}
 	}
@@ -400,7 +423,7 @@ export default function render(
 	function replaceRowData(value: string, data: any, k: number) {
 		return replace(
 			value,
-			get.bind(null, { ...global, data }),
+			get.bind(null, { ...global, ...data }),
 			(s, e) => replaceDataCoord(s, e, start, end, tailOffset, k * length),
 			transposition,
 		);
@@ -413,8 +436,10 @@ export default function render(
 
 	newData = [
 		...newData.slice(0, start).map(l => l.map(v => replaceData(v))),
-		...rowData.flatMap(([r, mask], k) =>
-			dataRows.map(l => l.map((v, i) => mask.has(i) ? null : replaceRowData(v, r, k))),
+		...rowData.flatMap(({data, mask, index}, k) =>
+			dataRows.map(l => l.map((v, i) => mask.has(i) ? null : replaceRowData(v, {
+				data, index,
+			}, k))),
 		),
 		...Array(addLength).fill(0).map(() => Array(inlineMax).fill(null)),
 		...newData.slice(end + 1).map(l => l.map(v => replaceData(v))),

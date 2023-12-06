@@ -1,5 +1,7 @@
 import { filterFieldtype } from '../../../../public/js/lib/makeFilters.mjs';
 
+import render_filters_table from './render_filters_table';
+
 function getDataFields(doc_type) {
 	const fields = frappe.get_meta(doc_type)?.fields || [];
 	const dataFields = fields
@@ -31,6 +33,7 @@ export default async function setFields(frm: frappe.ui.form.Form) {
 	const doc = frm.doc as any;
 	if (!doc.doc_type) { return; }
 	await new Promise(r => frappe.model.with_doctype(doc.doc_type, r));
+	render_filters_table(frm);
 	const dataFields = getDataFields(doc.doc_type);
 	frm.fields_dict.fields.grid.update_docfield_property('field', 'options', dataFields);
 	const fields = frappe.get_meta(doc.doc_type)?.fields || [];

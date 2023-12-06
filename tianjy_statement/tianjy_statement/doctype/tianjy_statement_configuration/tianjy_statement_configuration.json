@@ -7,10 +7,12 @@
  "engine": "InnoDB",
  "field_order": [
   "label",
+  "mode",
   "doc_type",
   "fields",
   "quick_filters",
   "methods",
+  "html_filters",
   "filters",
   "or_filters",
   "template_tab",
@@ -139,11 +141,23 @@
   {
    "fieldname": "column_break_6ikmt",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "html_filters",
+   "fieldtype": "HTML"
+  },
+  {
+   "default": "View Default",
+   "fieldname": "mode",
+   "fieldtype": "Select",
+   "label": "Mode",
+   "options": "View Default\nInput Default\nView Only\nInput Only",
+   "reqd": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-11-08 10:18:44.799596",
+ "modified": "2023-12-06 14:47:55.758649",
  "modified_by": "Administrator",
  "module": "Tianjy Statement",
  "name": "Tianjy Statement Configuration",
