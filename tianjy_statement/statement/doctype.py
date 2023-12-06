@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from typing import Any
 from .utils import datetime_to_obj
 import frappe
@@ -37,7 +37,12 @@ def query(meta: Meta, fields: set[str], filters, or_filters, order_by):
 		if fieldtype in ('Date', 'Datetime', 'Guigu Date'):
 			for value in values:
 				if v:= value[field]:
-					value[field] = datetime_to_obj(datetime.strptime(v, '%Y-%m-%d'), docField.options)
+					if isinstance(v, str):
+						v = datetime.strptime(v, '%Y-%m-%d')
+					elif isinstance(v, date):
+						v = datetime(v.year, v.month, v.day)
+					if isinstance(v, datetime):
+						value[field] = datetime_to_obj(v, docField.options)
 			continue
 		if fieldtype == 'Select':
 			for v in values:
