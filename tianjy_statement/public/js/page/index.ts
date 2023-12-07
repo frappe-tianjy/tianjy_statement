@@ -91,6 +91,7 @@ export default function load(wrapper) {
 		};
 		loading.hidden = false;
 		const doc: any = await get_template(name);
+		const {mode} = doc;
 		if (destroyed) { return; }
 		title.textContent = doc.label || doc.name || label;
 
@@ -306,15 +307,6 @@ export default function load(wrapper) {
 			update(getFilterValues(fields_dict));
 
 		};
-		if (quickFilters.find(v => v.required)) {
-			// TODO: 样式
-			// tipArea.style.position = 'ab';
-			// body.appendChild(tipArea);
-			loading.hidden = true;
-			renderData();
-		} else {
-			update({});
-		}
 		const save = async () => {
 			if (destroyed) { return; }
 			if (!inputMap) { return; }
@@ -353,14 +345,31 @@ export default function load(wrapper) {
 		const refresh = () => update(getFilterValues(fields_dict), true);
 		const export2xlsx = () => exportXLSX(editor.readValue(true));
 		editToolbar.appendChild(creButton);
-		editToolbar.appendChild(createButton('预览', toView, 'view'));
+		if (mode !== 'Input Only') {
+			editToolbar.appendChild(createButton('预览', toView, 'view'));
+		}
 		editToolbar.appendChild(createButton('Refresh', refresh, 'refresh'));
 		editToolbar.appendChild(createButton('Save', save)).classList.add('btn-primary');
 
-
-		viewToolbar.appendChild(createButton('录入', toEdit, 'edit'));
+		if (mode !== 'View Only') {
+			viewToolbar.appendChild(createButton('录入', toEdit, 'edit'));
+		}
 		viewToolbar.appendChild(createButton('Export', export2xlsx, 'upload'));
 		viewToolbar.appendChild(createButton('Refresh', refresh, 'refresh'));
+		if (mode === 'Input Only' || mode === 'Input Default') {
+			inputMap = [];
+			editToolbar.hidden = false;
+			viewToolbar.hidden = true;
+		}
+		if (quickFilters.find(v => v.required)) {
+			// TODO: 样式
+			// tipArea.style.position = 'ab';
+			// body.appendChild(tipArea);
+			loading.hidden = true;
+			renderData();
+		} else {
+			update({});
+		}
 		destroy = () => {
 			if (destroyed) { return; }
 			destroyed = true;

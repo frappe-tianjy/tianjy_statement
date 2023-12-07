@@ -8,13 +8,7 @@ import toFieldArea from '../../../../public/js/utils/toFieldArea.mts';
 import preview from './preview';
 import setFields from './setFields.mjs';
 import setAreaFields from './setAreaFields.mjs';
-
-
-interface Named {
-	type?: string;
-	field: string;
-	text?: string;
-}
+import render_filters_table from './render_filters_table';
 
 
 function parseText(t?: string) {
@@ -72,6 +66,8 @@ function getAllNamed(doc: any) {
 	for (const v of doc.fields || []) {
 		get(`${v.type || 'data'}.${v.field}`, v.text);
 	}
+	get(`index`, {row: 1, data: 1, sub: 1});
+	named['data.name'] = 'name';
 	return named;
 
 }
@@ -85,23 +81,8 @@ frappe.ui.form.on('Tianjy Statement Configuration', {
 	refresh: function (frm) {
 		setFields(frm).finally(() => setAreaFields(frm));
 		if (!frm.is_new()) {
-			const doc = {...frm.doc as any};
-			const doctype: string = doc.doc_type;
-			const template: Template | null =JSON.parse(doc.template || 'null');
-			if (doctype && template) {
-				const dataArea: [number, number] = [doc.start_row, doc.end_row];
-				const {name} = doc;
-				const quickFilters = doc.quick_filters;
-				const {transposition} = doc;
-				const fieldArea = toFieldArea(doc.areas);
-				frm.add_custom_button('Preview', () => {
-					preview(name, doctype, template, dataArea, fieldArea, transposition, quickFilters);
-				});
-				const url = `/app/tianjy-statement/${doc.name}`;
-				frm.add_custom_button(`<a href="${url}">${__('查看')}</a>`, () => {
-
-				});
-			}
+			const url = `/app/tianjy-statement/${frm.doc.name}`;
+			frm.add_custom_button(`<a href="${url}">${__('查看')}</a>`, () => {});
 		}
 		(frm as any).__templateEditorDestroy?.();
 		// @ts-ignore
