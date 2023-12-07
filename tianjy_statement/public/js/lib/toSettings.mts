@@ -48,7 +48,7 @@ export default function toSettings(value: Template, readOnly?: boolean) {
 		data: data?.map(v => [...v]),
 		mergeCells: merged || [],
 		colWidths: widths || [],
-		rowHeights: (heights || []).map(v => v || 'auto'),
+		rowHeights: (heights || []).map(v => v || null),
 		fixedRowsTop: freezeRow || 0,
 		fixedColumnsStart: freezeCol || 0,
 		customBorders: borders?.map(({

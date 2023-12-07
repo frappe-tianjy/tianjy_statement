@@ -80,6 +80,7 @@ export default function load(wrapper) {
 		main.style.display = 'flex';
 		main.style.flexDirection = 'column';
 		main.style.position = 'relative';
+		main.style.overflow = 'auto';
 		const loading = main.appendChild(document.createElement('tianjy-loading'));
 		let destroyed = false;
 		let saving = false;
