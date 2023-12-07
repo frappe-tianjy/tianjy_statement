@@ -4,7 +4,7 @@ from datetime import datetime
 no_str = '一二三四五六日'
 def datetime_to_obj(dt: datetime, type = ''):
 	yearOfWeek, week, weekday = dt.isocalendar()
-	quarter = int((dt.month + 3) / 4)
+	quarter = int((dt.month + 2) / 3)
 	textOfDate = dt.strftime('%Y-%m-%d')
 	textOfMonth = dt.strftime('%Y年%m月')
 	textOfYear = dt.strftime('%Y年')
