@@ -16,6 +16,7 @@ import { getNewName } from './getNewName';
 import { setPath } from './setPath';
 import getSaveData, { setModified } from './getSaveData';
 import getType from './getType';
+import createButtonGroup from './createButtonGroup';
 
 
 function createButton(title: string, click: () => void, icon?: string) {
@@ -113,6 +114,7 @@ export default function load(wrapper) {
 		toolbar.style.background = '#FFF';
 		toolbar.style.padding = '8px';
 		const filterDiv = toolbar.appendChild(document.createElement('div'));
+		toolbar.appendChild(createButtonGroup(doc.buttons));
 		const editToolbar = toolbar.appendChild(document.createElement('div'));
 		const viewToolbar = toolbar.appendChild(document.createElement('div'));
 		filterDiv.style.flex = '1';

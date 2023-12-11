@@ -93,7 +93,7 @@ export default function getType(fields: any, line?: InputLine | null, cell?: Inp
 		const [addValueListener, update] = createValueListen();
 		cell.update = update;
 		return createSelect(val, [{...val}], {required: df.reqd, loadOptions: async txt => {
-			const {results} = await frappe.call({
+			const {message, results = message} = await frappe.call({
 				type: 'POST',
 				method: 'frappe.desk.search.search_link',
 				no_spinner: true,
@@ -122,7 +122,7 @@ export default function getType(fields: any, line?: InputLine | null, cell?: Inp
 			const val = field in data ? data[field] ?? null : null;
 			const doctype = typeof val === 'object' && val ? val.value : val;
 			if (!doctype) { return; }
-			const {results} = await frappe.call({
+			const {message, results = message} = await frappe.call({
 				type: 'POST',
 				method: 'frappe.desk.search.search_link',
 				no_spinner: true,
