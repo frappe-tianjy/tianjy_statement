@@ -214,7 +214,7 @@ def get_ctx(meta, ctx):
 			)
 		if k in selectFields: return _(value)
 		doctype = linkOptions.get(k, None)
-		if isinstance(doctype, str): return value
+		if not isinstance(doctype, str): return value
 		doctype = doctype.split('\n', 1)[0]
 		if not doctype: return value
 		meta = frappe.get_meta(doctype)
