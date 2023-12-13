@@ -12,6 +12,7 @@
   "fields",
   "quick_filters",
   "methods",
+  "tab_break_glwxr",
   "html_filters",
   "filters",
   "or_filters",
@@ -26,6 +27,8 @@
   "section_break_pk21n",
   "template",
   "template_editor",
+  "tab_break_aorfw",
+  "buttons",
   "permission_tab",
   "permissions"
  ],
@@ -153,11 +156,26 @@
    "label": "Mode",
    "options": "View Default\nInput Default\nView Only\nInput Only",
    "reqd": 1
+  },
+  {
+   "fieldname": "tab_break_aorfw",
+   "fieldtype": "Tab Break",
+   "label": "\u6309\u94ae"
+  },
+  {
+   "fieldname": "buttons",
+   "fieldtype": "Table",
+   "options": "Tianjy Statement Button"
+  },
+  {
+   "fieldname": "tab_break_glwxr",
+   "fieldtype": "Tab Break",
+   "label": "\u8fc7\u6ee4"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-12-06 14:47:55.758649",
+ "modified": "2023-12-11 17:03:00.886119",
  "modified_by": "Administrator",
  "module": "Tianjy Statement",
  "name": "Tianjy Statement Configuration",
