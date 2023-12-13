@@ -193,7 +193,8 @@ def get_date_range_text(start, end):
 	return f"{start}~{end}"
 
 def get_ctx(meta, ctx):
-	linkOptions = {f.fieldname: f.options for f in meta.fields if f.fieldtype in ['Link', 'Tree Select']}
+	linkOptions = {f.fieldname: f.options for f in meta.fields if f.fieldtype in ['Link', 'Guigu Tree', 'Tianjy Related Link']}
+	selectFields = [f.fieldname for f in meta.fields if f.fieldtype in ['Select']]
 	dateFields = [f.fieldname for f in meta.fields if f.fieldtype in ['Date', 'Datetime']]
 	base_date_fields = {f.fieldname: f.options for f in meta.fields if f.fieldtype in ['Guigu Date']}
 	def get(value, k):
@@ -211,7 +212,10 @@ def get_ctx(meta, ctx):
 				end=datetime_to_obj(datetime.strptime(end, '%Y-%m-%d')),
 				_text=get_date_range_text(start, end),
 			)
+		if k in selectFields: return _(value)
 		doctype = linkOptions.get(k, None)
+		if not isinstance(doctype, str): return value
+		doctype = doctype.split('\n', 1)[0]
 		if not doctype: return value
 		meta = frappe.get_meta(doctype)
 		fieldname = meta.title_field or 'name' # type: ignore
