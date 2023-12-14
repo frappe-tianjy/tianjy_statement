@@ -62,7 +62,7 @@ export default function createButtonGroup(list) {
 			const button = root.appendChild(document.createElement('button'));
 			button.className = 'text-muted btn btn-default btn-sm';
 			button.type ='button';
-			button.style.marginInlineStart = '8px';
+			button.style.marginInlineEnd = '8px';
 			const a = button.appendChild(document.createElement('a'));
 			a.href = url;
 			a.appendChild(document.createTextNode(label));
@@ -73,7 +73,7 @@ export default function createButtonGroup(list) {
 		group.className = 'menu-btn-group';
 		const button = group.appendChild(document.createElement('button'));
 		button.className = 'btn btn-default btn-sm';
-		button.style.marginInlineStart = '8px';
+		button.style.marginInlineEnd = '8px';
 		button.type ='button';
 		button.dataset.toggle = 'dropdown';
 		button.appendChild(document.createTextNode(label));
