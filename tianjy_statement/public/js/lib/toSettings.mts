@@ -25,7 +25,7 @@ function getClassName(s: Record<string, any>) {
 
 function toSettingBorder(v?: BorderOptions) {
 	if (!v) { return; }
-	return {...v, width: 1 };
+	return { ...v, width: 1 };
 }
 
 function getType(type?: string) {
@@ -48,7 +48,7 @@ export default function toSettings(value: Template, readOnly?: boolean) {
 		data: data?.map(v => [...v]),
 		mergeCells: merged || [],
 		colWidths: widths || [],
-		rowHeights: (heights || []).map(v => v !== 'auto' && v || null),
+		// rowHeights: (heights || []).map(v => v !== 'auto' && v || null),
 		fixedRowsTop: freezeRow || 0,
 		fixedColumnsStart: freezeCol || 0,
 		customBorders: borders?.map(({
@@ -75,8 +75,8 @@ export default function toSettings(value: Template, readOnly?: boolean) {
 			renderer: customStylesRenderer,
 			editor: 'text',
 			...getType(s.type),
-			...readOnly ? {editor: false} : {},
+			...readOnly ? { editor: false } : {},
 			readOnly: Boolean(s.readOnly),
-		} : {row, col})).filter((Boolean)) || [],
+		} : { row, col })).filter((Boolean)) || [],
 	};
 }
