@@ -61,7 +61,7 @@ function parseRange(t: string): XlsxRange | undefined {
 		endColFixed = Boolean(r[5]);
 		endCol = parseCol(r[6]);
 		endRowFixed = Boolean(r[7]);
-		endRow = Number(t[8]) - 1;
+		endRow = Number(r[8]) - 1;
 
 	}
 	return {
@@ -80,7 +80,7 @@ function stringRange({
 			startColFixed ? '$' : '',
 			toCol(startCol),
 			startRowFixed ? '$' : '',
-			startRow - 1,
+			startRow + 1,
 		].join(''),
 	];
 	if (many
@@ -93,7 +93,7 @@ function stringRange({
 			endColFixed ? '$' : '',
 			toCol(endCol),
 			endRowFixed ? '$' : '',
-			endRow - 1,
+			endRow + 1,
 		].join(''));
 	}
 	return t.join(':');
