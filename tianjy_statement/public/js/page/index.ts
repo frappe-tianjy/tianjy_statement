@@ -268,6 +268,14 @@ export default function load(wrapper) {
 				if (isRefresh) {
 					// TODO: 警告存在必填项未填写
 				}
+				k2++;
+				loading.hidden = false;
+				tipArea.remove();
+				loading.hidden = true;
+				globalData = {};
+				dataFields = {};
+				dataList = [];
+				renderData();
 				return;
 			}
 			k2++;
