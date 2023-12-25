@@ -15,6 +15,7 @@ export interface XLSXEditor {
 	onPaste: (data: any[][], coords: RangeType[]) => void;
 	inputMode: boolean;
 	namedExpressions: Record<string, string>;
+	exportXLSX(all?: boolean | Record<string, XLSXEditor> | string, name?: string): void
 }
 export interface TemplateStyle {
 	bold?: 1;

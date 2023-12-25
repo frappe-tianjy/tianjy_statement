@@ -3,7 +3,6 @@
 
 import render from '../lib/render.mjs';
 import create from '../lib/create.mjs';
-import exportXLSX from '../lib/exportXLSX.mjs';
 import make_standard_filters, { getFilterValues } from '../lib/makeFilters.mjs';
 import toFieldArea from '../utils/toFieldArea.mts';
 import { InputLine, TemplateStyle } from '../types.mts';
@@ -354,7 +353,7 @@ export default function load(wrapper) {
 			renderData();
 		};
 		const refresh = () => update(getFilterValues(fields_dict), true);
-		const export2xlsx = () => exportXLSX(editor.readValue(true));
+		const export2xlsx = () => editor.exportXLSX();
 		editToolbar.appendChild(creButton);
 		if (mode !== 'Input Only') {
 			editToolbar.appendChild(createButton('预览', toView, 'view'));

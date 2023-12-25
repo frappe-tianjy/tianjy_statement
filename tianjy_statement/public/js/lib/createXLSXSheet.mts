@@ -121,7 +121,7 @@ function getStyle(style: TemplateStyle, s: XLSXStyle = {}) {
 function toXLSXBorder({color}: BorderOptions): XLSXBorder {
 	return {color: {rgb: color}, style: 'thin'};
 }
-export default function exportXLSX(template: Template) {
+export default function createXLSXSheet(template: Template) {
 	const {value, data, widths, heights, merged, styles, freezeCol, freezeRow, borders} = template;
 	const ws = XLSX.utils.aoa_to_sheet(
 		value
@@ -170,12 +170,6 @@ export default function exportXLSX(template: Template) {
 		if (bottom) { border.bottom = toXLSXBorder(bottom); }
 
 	}
-
-
-	const wb = XLSX.utils.book_new();
-	XLSX.utils.book_append_sheet(wb, ws, 'Data');
-
-	/* 保存至文件 */
-	XLSX.writeFile(wb, 'Data.xlsx');
+	return ws;
 
 }
