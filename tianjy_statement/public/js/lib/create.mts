@@ -1,5 +1,6 @@
 import Handsontable from 'handsontable';
 import HyperFormula from 'hyperformula';
+import * as XLSX from 'xlsx-js-style';
 import type { RangeType } from 'handsontable/common';
 
 import type { Template, XLSXEditor } from '../types.mjs';
@@ -8,6 +9,7 @@ import customStylesRenderer, { getRenderer } from './customStylesRenderer.mjs';
 import rendererStyleMenu from './rendererStyleMenu.mjs';
 import readValue from './readValue.mjs';
 import toSettings from './toSettings.mjs';
+import createXLSXSheet from './createXLSXSheet.mts';
 
 function getStartRange(table: Handsontable): [number, number] | null {
 	const ranges = table.getSelectedRange();
@@ -140,6 +142,7 @@ export default function create(el: HTMLElement, {
 	readOnly: ro,
 	inited,
 	inputMode: isInputMode,
+	getSheets,
 }: {
 	height: string;
 	formula?: HyperFormula;
@@ -148,6 +151,7 @@ export default function create(el: HTMLElement, {
 	readOnly?: boolean;
 	inputMode?: boolean,
 	inited?: () => void;
+	getSheets?: () => Record<string, XLSXEditor> | null | undefined,
 }, cb?: (editor: XLSXEditor) => void): XLSXEditor {
 	el.style.overscrollBehavior = 'contain';
 	el.style.isolation = 'isolate';
@@ -179,13 +183,7 @@ export default function create(el: HTMLElement, {
 		rowHeaders: true,
 		colHeaders: true,
 		contextMenu: {
-			items: readOnly ? {
-				row_above: {},
-				row_below: {},
-				hr0: '---------' as any,
-				col_left: {},
-				col_right: {},
-			} : {
+			items: {
 				row_above: {disabled},
 				row_below: {disabled},
 				hr0: '---------' as any,
@@ -301,8 +299,13 @@ export default function create(el: HTMLElement, {
 					key:'type:text', name:'文本',
 					callback(type, range){ setType(this, range, 'text'); },
 				}]}},
-
 				hr7: '---------' as any,
+				export: {
+					disabled: () => inputMode, name: '导出',
+					// eslint-disable-next-line @typescript-eslint/no-use-before-define
+					callback() { exportXLSX(true); },
+				},
+				hr8: '---------' as any,
 				style: {
 					disabled,
 					renderer() {
@@ -365,6 +368,31 @@ export default function create(el: HTMLElement, {
 		formulas.enablePlugin();
 
 	}
+	function readValueWithData() {
+		const formulas = table.getPlugin('formulas');
+		if (formulas.enabled) { return readValue(table, true); }
+		initFormulas();
+		formulas.enablePlugin();
+		const value = readValue(table, true);
+		formulas.disablePlugin();
+		return value;
+	}
+	function exportXLSX(all?: boolean | Record<string, XLSXEditor> | string, name?: string) {
+		const sheets = typeof all === 'object' && all || all === true && getSheets?.();
+		const list = sheets && typeof sheets === 'object' && Object.entries(sheets) || [];
+		const wb = XLSX.utils.book_new();
+		if (list.length) {
+			for (const [name, editor] of list) {
+				const ws = createXLSXSheet(editor.readValue(true));
+				XLSX.utils.book_append_sheet(wb, ws, name);
+			}
+		} else {
+			const ws = createXLSXSheet(readValueWithData());
+			XLSX.utils.book_append_sheet(wb, ws, 'Data');
+		}
+		const fileName = [all, name].find(v => v && typeof v === 'string');
+		XLSX.writeFile(wb, `${fileName || 'Data'}.xlsx`);
+	}
 	function setValue(value: Template, ro?: boolean) {
 		const old = onChange;
 		onChange = noop;
@@ -387,6 +415,7 @@ export default function create(el: HTMLElement, {
 			engine.removeSheet(sheetId);
 
 		},
+		exportXLSX,
 		get readOnly() { return readOnly; },
 		get destroyed() { return destroyed; },
 		get value() { return readValue(table); },
@@ -414,13 +443,7 @@ export default function create(el: HTMLElement, {
 		},
 		readValue(h) {
 			if (!h) { return readValue(table); }
-			const formulas = table.getPlugin('formulas');
-			if (formulas.enabled) { return readValue(table, true); }
-			initFormulas();
-			formulas.enablePlugin();
-			const value = readValue(table, true);
-			formulas.disablePlugin();
-			return value;
+			return readValueWithData();
 		},
 		get name() { return sheetName; },
 		set name(newName) {
