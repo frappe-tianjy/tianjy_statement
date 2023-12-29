@@ -393,7 +393,7 @@ export default function create(el: HTMLElement, {
 		const fileName = [all, name].find(v => v && typeof v === 'string');
 		XLSX.writeFile(wb, `${fileName || 'Data'}.xlsx`);
 	}
-	function setValue(value: Template, ro?: boolean) {
+	function setValue(value: Template) {
 		const old = onChange;
 		onChange = noop;
 		const settings = toSettings(value, readOnly);
@@ -417,6 +417,12 @@ export default function create(el: HTMLElement, {
 		},
 		exportXLSX,
 		get readOnly() { return readOnly; },
+		set readOnly(ro) {
+			if (destroyed) { return; }
+			if (readOnly === Boolean(ro)) { return; }
+			readOnly = !readOnly;
+			setValue(readValue(table));
+		},
 		get destroyed() { return destroyed; },
 		get value() { return readValue(table); },
 		set value(value) {
@@ -426,7 +432,7 @@ export default function create(el: HTMLElement, {
 		setValue(value, ro) {
 			if (destroyed) { return; }
 			if (typeof ro === 'boolean') { readOnly = ro; }
-			setValue(value, ro);
+			setValue(value);
 		},
 		get formulasEnabled() { return table.getPlugin('formulas').enabled; },
 		set formulasEnabled(v) {

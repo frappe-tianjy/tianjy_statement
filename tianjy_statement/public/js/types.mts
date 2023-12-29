@@ -9,7 +9,7 @@ export interface XLSXEditor {
 	readonly destroyed: boolean;
 	readValue(hasValue?: boolean): Template;
 	setValue(value: Template, readOnly?: boolean);
-	readonly readOnly: boolean;
+	readOnly: boolean;
 	getData(): any[][];
 	onChange: (changed: [number, number, any, any][]) => void;
 	onPaste: (data: any[][], coords: RangeType[]) => void;
