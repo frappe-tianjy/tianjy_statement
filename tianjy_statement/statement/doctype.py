@@ -8,14 +8,14 @@ import frappe.model.utils
 from ..tianjy_statement.doctype.tianjy_statement_configuration.tianjy_statement_configuration import TianjyStatementConfiguration
 
 link_types = set(['Link', 'Tree Select', 'Tianjy Related Link'])
-def get_data_by_doctype(meta, fields, filters,or_filters, order_by, ctx):
+def get_data_by_doctype(meta, fields, filters, order_by, ctx):
 	return dict(
-		list=get_list(meta, fields, filters, or_filters, order_by),
+		list=get_list(meta, fields, filters, order_by),
 		fields=get_fields(meta, fields),
 		ctx=get_ctx(meta, ctx)
 	)
 
-def query(meta: Meta, fields: set[str], filters, or_filters, order_by):
+def query(meta: Meta, fields: set[str], filters, order_by):
 
 	doctype = meta.name
 
@@ -23,7 +23,6 @@ def query(meta: Meta, fields: set[str], filters, or_filters, order_by):
 		doctype,
 		fields=list(fields),
 		filters=filters,
-		guigu_or_filters=or_filters,
 		order_by=order_by,
 		page_length=0,
 	)
@@ -124,13 +123,13 @@ def get_field_map(requestFields: set[str]):
 			field_map[main_field] = set([sub_field])
 	return field_map
 
-def get_list(meta: Meta, requestFields: set[str], filters, or_filters, order_by):
+def get_list(meta: Meta, requestFields: set[str], filters, order_by):
 	allFields = (
 		set(frappe.model.utils.STANDARD_FIELD_CONVERSION_MAP.keys()) |
 		set(v.fieldname for v in meta.fields if v.fieldtype not in frappe.model.no_value_fields)
 	)
 
-	values = query(meta, allFields & requestFields | set(['name']), filters, or_filters, order_by)
+	values = query(meta, allFields & requestFields | set(['name']), filters, order_by)
 	if not values: return []
 
 
@@ -156,7 +155,7 @@ def get_list(meta: Meta, requestFields: set[str], filters, or_filters, order_by)
 			'parent': ('in', names),
 			'parenttype': meta.name,
 			'parentfield': main_field,
-		}, or_filters = [], order_by = 'idx')
+		}, order_by = 'idx')
 		if not sub_docs: continue
 		sub_doc_map: dict[str, list] = dict()
 		for sub_doc in sub_docs:

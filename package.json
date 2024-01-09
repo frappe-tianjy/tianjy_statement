@@ -1,0 +1,16 @@
+{
+  "name": "tianjy_statement",
+  "version": "0.0.1",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/frappe-tianjy/tianjy_statement"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "handsontable": "^13.0.0",
+    "hyperformula": "^2.5.0",
+    "xlsx-js-style": "^1.2.0"
+  }
+}

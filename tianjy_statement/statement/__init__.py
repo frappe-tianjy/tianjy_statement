@@ -48,14 +48,13 @@ def get_data(name: str, ctx = {}):
 	ctx_filters = [[doctype, k, get_con(meta,k,v), v]  for k,v in ctx.items()]
 	must_filters = json.loads(statement.filters or '[]')
 	filters = must_filters + ctx_filters
-	or_filters = json.loads(statement.or_filters or '[]')
 	fields = set(v.field for v in statement.get('fields') or [])
 	order_by = []
 	# order_by: order?.map(v => {
 	# 	const [field, desc] = typeof v === 'string' ? [v] : v;
 	# 	return `${getFieldName(doctype, field)} ${desc ? 'DESC' : 'ASC'}`;
 	# }).join(', ') || undefined,
-	res = get_data_by_doctype(meta, fields, filters,or_filters,order_by, ctx)
+	res = get_data_by_doctype(meta, fields, filters,order_by, ctx)
 
 	return dict(method={
 		m.get('field'): get_method_value(

@@ -1,4 +1,4 @@
-import { filterFieldtype } from '../../../../public/js/lib/makeFilters.mjs';
+import { filterFieldtype } from '../lib/makeFilters.mjs';
 
 import render_filters_table from './render_filters_table';
 

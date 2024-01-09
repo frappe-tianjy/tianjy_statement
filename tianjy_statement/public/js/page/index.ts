@@ -13,7 +13,7 @@ import { saveData } from './saveData';
 import { createData } from './createData';
 import { getNewName } from './getNewName';
 import { setPath } from './setPath';
-import getSaveData, { setModified } from './getSaveData';
+import { setModified } from './getSaveData';
 import getType from './getType';
 import createButtonGroup from './createButtonGroup';
 
@@ -42,9 +42,7 @@ const noop = () => {};
 // @ts-ignore
 const label= __('Tianjy Statement');
 
-export default function load(wrapper) {
-
-
+function load(wrapper) {
 	wrapper.style.display = 'flex';
 	wrapper.style.flexDirection = 'column';
 	wrapper.style.height = 'calc(100vh - 60px)';
@@ -391,3 +389,18 @@ export default function load(wrapper) {
 	$(wrapper).on('show', () => show(false));
 	show(true);
 }
+
+let page = frappe.pages['tianjy-statement'];
+if (page) {
+	page.on_page_load = load;
+}
+Object.defineProperty(frappe.pages, 'tianjy-statement', {
+	set(value) {
+		page = value;
+		if (page) {
+			page.on_page_load = load;
+		}
+	},
+	get() { return page; },
+	configurable: true,
+});

@@ -1,14 +1,11 @@
 // Copyright (c) 2023, 天玑 Tianjy and contributors
 // For license information, please see license.txt
 
-import type { Template, XLSXEditor } from '../../../../public/js/types.mjs';
-import create from '../../../../public/js/lib/create.mjs';
-import toFieldArea from '../../../../public/js/utils/toFieldArea.mts';
+import type { XLSXEditor } from '../types.mjs';
+import create from '../lib/create.mjs';
 
-import preview from './preview';
 import setFields from './setFields.mjs';
 import setAreaFields from './setAreaFields.mjs';
-import render_filters_table from './render_filters_table';
 
 
 function parseText(t?: string) {

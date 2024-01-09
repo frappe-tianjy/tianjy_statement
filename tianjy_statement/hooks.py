@@ -8,20 +8,10 @@ app_email = "Tianjy"
 app_license = "MIT"
 
 app_include_css = [
-	"tianjy_statement.bundle.guigu.css",
 	"tianjy_statement.bundle.css",
 ]
-app_include_js = "tianjy_statement.bundle.guigu.ts"
+app_include_js = "tianjy_statement.bundle.js"
 
-
-guigu_view_types = {
-	'Tianjy Statement View Configuration': {
-		'create': 'guigu.view.create_configuration',
-		'get': 'guigu.view.get_configuration',
-		'update': 'guigu.view.update_configuration',
-		'delete': 'guigu.view.delete_configuration',
-	},
-};
 
 
 # Includes in <head>
